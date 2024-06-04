@@ -1,0 +1,17 @@
+setuptools
+wheel
+psutil
+pycryptodomex
+pywin32
+pymem
+silk-python
+pyaudio
+requests
+pillow
+flask
+pyahocorasick
+blackboxprotobuf
+lz4
+lxml
+flask_cors
+pandas
