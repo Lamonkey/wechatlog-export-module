@@ -136,12 +136,20 @@ def merge_folders(source, destination):
         for file in files:
             source_file = os.path.join(root, file)
             destination_file = os.path.join(destination_path, file)
-            # overwrite existing files
-            shutil.copy2(source_file, destination_file)
+            try:
+                if not os.path.exists(destination_file):
+                    shutil.copy2(source_file, destination_file)
+            except PermissionError:
+                logging.warning(
+                    f"Permission denied when copying file: {source_file}")
 
         # Copy directories
         for dir in dirs:
             source_dir = os.path.join(root, dir)
             destination_dir = os.path.join(destination_path, dir)
-            if not os.path.exists(destination_dir):
-                shutil.copytree(source_dir, destination_dir)
+            try:
+                if not os.path.exists(destination_dir):
+                    shutil.copytree(source_dir, destination_dir)
+            except PermissionError:
+                logging.warning(
+                    f"Permission denied when copying directory: {source_dir}")
