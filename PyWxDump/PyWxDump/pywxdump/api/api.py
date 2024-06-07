@@ -447,9 +447,16 @@ def get_file_info():
     wx_path = read_session(g.sf, my_wxid, "wx_path")
 
     all_file_path = os.path.join(wx_path, file_path)
-    if not os.path.exists(all_file_path):
-        return ReJson(5002)
+    # TODO: return 404 instead of 5002
+    # if not os.path.exists(all_file_path):
+    #     return ReJson(5002)
+
     file_name = os.path.basename(all_file_path)
+    # TODO: handle this on ui, 
+    # when response is 404 
+    # just indicate the file need to be manually downloaded
+    if not os.path.exists(all_file_path):
+        return ReJson(0, {"file_name": file_name, "file_size": 0})
     file_size = os.path.getsize(all_file_path)
     return ReJson(0, {"file_name": file_name, "file_size": str(file_size)})
 
