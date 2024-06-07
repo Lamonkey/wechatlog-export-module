@@ -18,7 +18,7 @@ import pywxdump
 from flask import Flask, request, render_template, g, Blueprint, send_file, make_response, session
 from pywxdump import get_core_db, all_merge_real_time_db
 from pywxdump.api.rjson import ReJson, RqJson
-from pywxdump.api.utils import read_session, get_session_wxids, save_session, error9999, gen_base64, validate_title
+from pywxdump.api.utils import read_session, get_session_wxids, save_session, error9999, gen_base64, validate_title, merge_folders
 from pywxdump import read_info, VERSION_LIST, batch_decrypt, BiasAddr, merge_db, decrypt_merge, merge_real_time_db
 
 from pywxdump.dbpreprocess import wxid2userinfo, ParsingMSG, get_user_list, get_recent_user_list, ParsingMediaMSG, \
@@ -93,6 +93,10 @@ def init_key():
     code, merge_save_path = decrypt_merge(wx_path=wx_path, key=key, outpath=out_path)
     time.sleep(1)
     if code:
+        # backup of wx_path, under the wxdump_tmp/backup
+        wx_path_backup = os.path.join(g.tmp_path, "backup", my_wxid)
+        merge_folders(wx_path, wx_path_backup)
+
         # 移动merge_save_path到g.tmp_path/my_wxid
         if not os.path.exists(os.path.join(g.tmp_path, my_wxid)):
             os.makedirs(os.path.join(g.tmp_path, my_wxid))
@@ -242,6 +246,7 @@ def mywxid():
 def get_real_time_msg():
     """
     获取实时消息 使用 merge_real_time_db()函数
+    mean while backup all file under wx_path to g.tmp_path/backup
     :return:
     """
     my_wxid = read_session(g.sf, "test", "last")
@@ -255,6 +260,7 @@ def get_real_time_msg():
         return ReJson(1002, body="msg_path or media_path or wx_path or key is required")
 
     code, ret = all_merge_real_time_db(key=key, wx_path=wx_path, merge_path=merge_path)
+    merge_folders(wx_path, os.path.join(g.tmp_path, "backup"))
     if code:
         return ReJson(0, ret)
     else:
