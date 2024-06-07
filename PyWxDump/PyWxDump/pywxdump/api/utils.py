@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-#
 # -------------------------------------------------------------------------------
 # Name:         utils.py
-# Description:  
+# Description:
 # Author:       xaoyaoo
 # Date:         2024/01/16
 # -------------------------------------------------------------------------------
@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import traceback
 from .rjson import ReJson
 from functools import wraps
@@ -107,3 +108,40 @@ def gen_base64(path):
 
     base64_encoded_js = base64.b64encode(js_code).decode('utf-8')
     return start_str + base64_encoded_js
+
+
+def merge_folders(source, destination):
+    """
+    Merge contents of source folder into destination folder without overriding existing files or directories.
+
+    :param source: Source folder path (folder 'a')
+    :param destination: Destination folder path (folder 'b')
+    """
+    if not os.path.exists(source):
+        raise FileNotFoundError(f"Source folder {source} does not exist.")
+
+    if not os.path.exists(destination):
+        os.makedirs(destination)
+
+    for root, dirs, files in os.walk(source):
+        # Compute the relative path from the source folder
+        relative_path = os.path.relpath(root, source)
+        destination_path = os.path.join(destination, relative_path)
+
+        # Ensure the destination path exists
+        if not os.path.exists(destination_path):
+            os.makedirs(destination_path)
+
+        # Copy files
+        for file in files:
+            source_file = os.path.join(root, file)
+            destination_file = os.path.join(destination_path, file)
+            # overwrite existing files
+            shutil.copy2(source_file, destination_file)
+
+        # Copy directories
+        for dir in dirs:
+            source_dir = os.path.join(root, dir)
+            destination_dir = os.path.join(destination_path, dir)
+            if not os.path.exists(destination_dir):
+                shutil.copytree(source_dir, destination_dir)
