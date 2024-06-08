@@ -356,3 +356,6 @@ dist
 dist-ssr
 *.local
 *.zip
+wxdump_tmp
+ui
+wxdump_web
