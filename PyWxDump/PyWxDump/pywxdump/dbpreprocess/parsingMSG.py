@@ -40,11 +40,10 @@ class ParsingMSG(DatabaseBase):
     def get_BytesExtra(self, BytesExtra):
         if BytesExtra is None or not isinstance(BytesExtra, bytes):
             return None
-        try:
-            deserialize_data, message_type = blackboxprotobuf.decode_message(BytesExtra)
-            return deserialize_data
-        except Exception as e:
-            return None
+        # TODO:change to  use pattern to decode protocol
+        deserialize_data, message_type = blackboxprotobuf.decode_message(BytesExtra)
+        return deserialize_data
+      
 
     def msg_count(self, wxid: str = ""):
         """
@@ -212,10 +211,17 @@ class ParsingMSG(DatabaseBase):
             content["src"] = ""
 
         elif type_id[0] == 49 and type_id[1] != 0:
-            DictExtra = self.get_BytesExtra(BytesExtra)
-            url = match_BytesExtra(DictExtra)
-            content["src"] = url
-            content["msg"] = type_name
+            if type_id[1] == 5:
+                xml_str = self.decompress_CompressContent(CompressContent)
+                xml_dict = xml2dict(xml_str)
+                content['title'] = xml_dict['appmsg']['title']
+                content['src'] = xml_dict['appmsg']['url']
+                content['des'] = xml_dict['appmsg']['des']
+            else:
+                DictExtra = self.get_BytesExtra(BytesExtra)
+                url = match_BytesExtra(DictExtra)
+                content["src"] = url
+                content["msg"] = type_name
 
         elif type_id == (50, 0):  # 语音通话
             content["msg"] = "语音/视频通话[%s]" % DisplayContent
@@ -238,8 +244,12 @@ class ParsingMSG(DatabaseBase):
                         talker = bytes_extra['3'][0]['2'].decode('utf-8', errors='ignore')
                         if "publisher-id" in talker:
                             talker = "系统"
-                    except:
-                        pass
+                    except KeyError:
+                        # attemp to use regular expression to get sender id
+                        decoded_string = BytesExtra.decode('ascii', errors='ignore')
+                        match = re.search(r'\x12\t([a-zA-Z0-9]+)', decoded_string)
+                        talker = match.group(1) if match else "微信系统"
+    
             else:
                 talker = StrTalker
 
@@ -271,6 +281,8 @@ class ParsingMSG(DatabaseBase):
         wxid_list = []
         for row in result1:
             tmpdata = self.msg_detail(row)
+            if tmpdata['type_name'] == '卡片式链接':
+                print('stop')
             wxid_list.append(tmpdata["talker"])
             data.append(tmpdata)
         wxid_list = list(set(wxid_list))

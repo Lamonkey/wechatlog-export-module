@@ -17,7 +17,6 @@ from .utils import download_file
 from .export.exportCSV import export_csv
 from .export.exportJSON import export_json
 
-
 def get_user_list(MicroMsg_db_path, OpenIMContact_db_path=None, word=None):
     """
     获取联系人列表
@@ -60,7 +59,7 @@ def get_recent_user_list(MicroMsg_db_path, OpenIMContact_db_path=None, limit=200
     users = get_user_list(MicroMsg_db_path, OpenIMContact_db_path)
     users = pd.DataFrame(users)
 
-    users = pd.merge(users, recent_users, on="wxid", how="right")
+    users = pd.merge(users, recent_users, on="wxid", how="outer")
     # users = users.drop_duplicates(subset=["wxid"], keep="last")  # 保留最新的
     users = users.sort_values(by="LastReadedCreateTime", ascending=False) if not users.empty else users
     users = users.drop_duplicates(subset=["wxid"], keep="first")  # 保留最新的
