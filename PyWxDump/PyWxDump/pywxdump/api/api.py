@@ -189,7 +189,6 @@ def recent_user_list():
                                      merge_path,
                                      limit=200,
                                      msg_db_path=merge_path)
-    # user_list = list(get_chat_list(merge_path))
     return ReJson(0, user_list)
 
 
