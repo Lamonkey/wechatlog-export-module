@@ -287,3 +287,18 @@ class ParsingMSG(DatabaseBase):
             data.append(tmpdata)
         wxid_list = list(set(wxid_list))
         return data, wxid_list
+    
+    def get_all_contact(self):
+        """
+        return desc sorted contact list from MSG table
+        """
+        sql = " ".join([
+            "SELECT strTalker,MAX(CreateTime) AS lastTime",
+            "from MSG",
+            "GROUP BY strTalker",
+            "ORDER BY lastTime DESC;"]
+        )
+        result = self.execute_sql(sql)
+        if not result:
+            return []
+        return (row[0] for row in result)

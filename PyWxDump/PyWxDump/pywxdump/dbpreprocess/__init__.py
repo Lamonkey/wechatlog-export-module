@@ -40,7 +40,7 @@ def get_user_list(MicroMsg_db_path, OpenIMContact_db_path=None, word=None):
 
 def get_recent_user_list(MicroMsg_db_path, OpenIMContact_db_path=None, limit=200, msg_db_path=None):
     """
-    获取联系人列表
+    get contact you have chat msgs with
     :param MicroMsg_db_path: MicroMsg.db 文件路径
     :param OpenIMContact_db_path: OpenIMContact.db 文件路径
     :param limit: 最大数量
