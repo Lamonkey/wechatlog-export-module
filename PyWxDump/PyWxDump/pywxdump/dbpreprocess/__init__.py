@@ -38,8 +38,7 @@ def get_user_list(MicroMsg_db_path, OpenIMContact_db_path=None, word=None):
     users = [dict(t) for t in {tuple(d.items()) for d in users}]
     return users
 
-
-def get_recent_user_list(MicroMsg_db_path, OpenIMContact_db_path=None, limit=200):
+def get_recent_user_list(MicroMsg_db_path, OpenIMContact_db_path=None, limit=200, msg_db_path=None):
     """
     获取联系人列表
     :param MicroMsg_db_path: MicroMsg.db 文件路径
@@ -48,8 +47,10 @@ def get_recent_user_list(MicroMsg_db_path, OpenIMContact_db_path=None, limit=200
     :return: 联系人列表
     """
     # 连接 MicroMsg.db 数据库，并执行查询
-    if not MicroMsg_db_path:
+    if not MicroMsg_db_path or not msg_db_path:
         return []
+    msg_db_operator = ParsingMSG(msg_db_path)   
+    convesations = list(msg_db_operator.get_all_contact())
     parsing_micromsg = ParsingMicroMsg(MicroMsg_db_path)
     recent_users = parsing_micromsg.recent_chat_wxid()  # [{"wxid": username, "LastReadedCreateTime": LastReadedCreateTime, "LastReadedSvrId": LastReadedSvrId},]
     recent_users = pd.DataFrame(recent_users, columns=["wxid", "LastReadedCreateTime", "LastReadedSvrId"])
@@ -59,11 +60,21 @@ def get_recent_user_list(MicroMsg_db_path, OpenIMContact_db_path=None, limit=200
     users = get_user_list(MicroMsg_db_path, OpenIMContact_db_path)
     users = pd.DataFrame(users)
 
+    # users = (
+    #     users.merge(convesations, left_on="wxid", right_on=0, how="right")
+    #     .assign(LastReadedCreateTime=lambda x: pd.to_datetime(x[1], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S'))
+    #     .drop_duplicates(subset=["wxid"], keep="first")
+    #     .sort_values(by='LastReadedCreateTime', ascending=False)
+    #     .fillna("")
+    #     .to_dict(orient="records")
+    # )
+
     users = pd.merge(users, recent_users, on="wxid", how="outer")
-    # users = users.drop_duplicates(subset=["wxid"], keep="last")  # 保留最新的
-    users = users.sort_values(by="LastReadedCreateTime", ascending=False) if not users.empty else users
+    users = users.drop_duplicates(subset=["wxid"], keep="last")  # 保留最新的
+    users = users.sort_values(by='LastReadedCreateTime', ascending=False) if not users.empty else users
     users = users.drop_duplicates(subset=["wxid"], keep="first")  # 保留最新的
     users = users.fillna("")
+    users = users[users.wxid.isin(convesations)]
     users = users.to_dict(orient="records")
     return users
 
