@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-#
 # -------------------------------------------------------------------------------
 # Name:         parsingMicroMsg.py
-# Description:  
+# Description:
 # Author:       xaoyaoo
 # Date:         2024/04/15
 # -------------------------------------------------------------------------------
@@ -23,7 +23,8 @@ class ParsingMicroMsg(DatabaseBase):
         if BytesExtra is None or not isinstance(BytesExtra, bytes):
             return None
         try:
-            deserialize_data, message_type = blackboxprotobuf.decode_message(BytesExtra)
+            deserialize_data, message_type = blackboxprotobuf.decode_message(
+                BytesExtra)
             return deserialize_data
         except Exception as e:
             return None
@@ -118,7 +119,8 @@ class ParsingMicroMsg(DatabaseBase):
         for row in result:
             # 获取用户名、昵称、备注和聊天记录数量
             username, LastReadedCreateTime, LastReadedSvrId = row
-            LastReadedCreateTime = timestamp2str(LastReadedCreateTime / 1000) if LastReadedCreateTime else None
+            LastReadedCreateTime = timestamp2str(
+                LastReadedCreateTime / 1000) if LastReadedCreateTime else None
             users.append(
                 {"wxid": username, "LastReadedCreateTime": LastReadedCreateTime, "LastReadedSvrId": LastReadedSvrId})
         return users
@@ -161,7 +163,8 @@ class ParsingMicroMsg(DatabaseBase):
                         if isinstance(i, dict) and isinstance(i.get('1'), str) and i.get('2'):
                             wxid2remark[i['1']] = i["2"]
                     except Exception as e:
-                        logging.error(f"wxid2remark: ChatRoomName:{ChatRoomName}, {i} error:{e}")
+                        logging.error(
+                            f"wxid2remark: ChatRoomName:{ChatRoomName}, {i} error:{e}")
             rooms.append(
                 {"ChatRoomName": ChatRoomName, "UserNameList": UserNameList, "DisplayNameList": DisplayNameList,
                  "Announcement": Announcement, "AnnouncementEditor": AnnouncementEditor, "wxid2remark": wxid2remark})
@@ -205,15 +208,20 @@ class ParsingMicroMsg(DatabaseBase):
                 offset += 1
 
                 if type_id == b"\x04":
-                    rdata[rdata_name] = int.from_bytes(ExtraBuf[offset: offset + 4], "little")
+                    rdata[rdata_name] = int.from_bytes(
+                        ExtraBuf[offset: offset + 4], "little")
 
                 elif type_id == b"\x18":
-                    length = int.from_bytes(ExtraBuf[offset: offset + 4], "little")
-                    rdata[rdata_name] = ExtraBuf[offset + 4: offset + 4 + length].decode("utf-16").rstrip("\x00")
+                    length = int.from_bytes(
+                        ExtraBuf[offset: offset + 4], "little")
+                    rdata[rdata_name] = ExtraBuf[offset + 4: offset +
+                                                 4 + length].decode("utf-16").rstrip("\x00")
 
                 elif type_id == b"\x17":
-                    length = int.from_bytes(ExtraBuf[offset: offset + 4], "little")
-                    rdata[rdata_name] = ExtraBuf[offset + 4: offset + 4 + length].decode("utf-8").rstrip("\x00")
+                    length = int.from_bytes(
+                        ExtraBuf[offset: offset + 4], "little")
+                    rdata[rdata_name] = ExtraBuf[offset + 4: offset +
+                                                 4 + length].decode("utf-8").rstrip("\x00")
 
                 elif type_id == b"\x05":
                     rdata[rdata_name] = f"0x{ExtraBuf[offset: offset + 8].hex()}"
