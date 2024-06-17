@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-#
 # -------------------------------------------------------------------------------
 # Name:         chat_api.py
-# Description:  
+# Description:
 # Author:       xaoyaoo
 # Date:         2024/01/02
 # -------------------------------------------------------------------------------
@@ -27,7 +27,8 @@ from pywxdump.dbpreprocess.utils import dat2img
 
 # app = Flask(__name__, static_folder='../ui/web/dist', static_url_path='/')
 
-api = Blueprint('api', __name__, template_folder='../ui/web', static_folder='../ui/web/assets/', )
+api = Blueprint('api', __name__, template_folder='../ui/web',
+                static_folder='../ui/web/assets/', )
 api.debug = False
 
 
@@ -80,7 +81,8 @@ def init_key():
         pmsg = ParsingMSG(old_merge_save_path)
         pmsg.close_all_connection()
 
-    out_path = os.path.join(g.tmp_path, "decrypted", my_wxid) if my_wxid else os.path.join(g.tmp_path, "decrypted")
+    out_path = os.path.join(g.tmp_path, "decrypted", my_wxid) if my_wxid else os.path.join(
+        g.tmp_path, "decrypted")
     # 检查文件夹中文件是否被占用
     if os.path.exists(out_path):
         try:
@@ -90,7 +92,8 @@ def init_key():
             logging.error(f"{e}", exc_info=True)
             return ReJson(2001, body=str(e))
 
-    code, merge_save_path = decrypt_merge(wx_path=wx_path, key=key, outpath=out_path)
+    code, merge_save_path = decrypt_merge(
+        wx_path=wx_path, key=key, outpath=out_path)
     time.sleep(1)
     if code:
         # backup of wx_path, under the wxdump_tmp/backup
@@ -135,7 +138,8 @@ def init_nokey():
     初始化，包括key
     :return:
     """
-    merge_path = request.json.get("merge_path", "").strip().strip("'").strip('"')
+    merge_path = request.json.get(
+        "merge_path", "").strip().strip("'").strip('"')
     wx_path = request.json.get("wx_path", "").strip().strip("'").strip('"')
     my_wxid = request.json.get("my_wxid", "").strip().strip("'").strip('"')
 
@@ -178,9 +182,14 @@ def recent_user_list():
     :return:
     """
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     merge_path = read_session(g.sf, my_wxid, "merge_path")
-    user_list = get_recent_user_list(merge_path, merge_path, limit=200)
+    user_list = get_recent_user_list(merge_path,
+                                     merge_path,
+                                     limit=200,
+                                     msg_db_path=merge_path)
+    # user_list = list(get_chat_list(merge_path))
     return ReJson(0, user_list)
 
 
@@ -198,7 +207,8 @@ def user_list():
     else:
         return ReJson(1003, msg="Unsupported method")
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     merge_path = read_session(g.sf, my_wxid, "merge_path")
     user_list = get_user_list(merge_path, merge_path, word)
     return ReJson(0, user_list)
@@ -219,7 +229,8 @@ def wxid2user():
         return ReJson(1003, msg="Unsupported method")
 
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     merge_path = read_session(g.sf, my_wxid, "merge_path")
     user_info = wxid2userinfo(merge_path, merge_path, wxid=word)
     return ReJson(0, user_info)
@@ -233,7 +244,8 @@ def mywxid():
     :return:
     """
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     return ReJson(0, {"my_wxid": my_wxid})
 
 
@@ -250,7 +262,8 @@ def get_real_time_msg():
     :return:
     """
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
 
     merge_path = read_session(g.sf, my_wxid, "merge_path")
     key = read_session(g.sf, my_wxid, "key")
@@ -259,7 +272,8 @@ def get_real_time_msg():
     if not merge_path or not key or not wx_path or not wx_path:
         return ReJson(1002, body="msg_path or media_path or wx_path or key is required")
 
-    code, ret = all_merge_real_time_db(key=key, wx_path=wx_path, merge_path=merge_path)
+    code, ret = all_merge_real_time_db(
+        key=key, wx_path=wx_path, merge_path=merge_path)
     merge_folders(wx_path, os.path.join(g.tmp_path, "backup"))
     if code:
         return ReJson(0, ret)
@@ -282,7 +296,8 @@ def msg_count():
         return ReJson(1003, msg="Unsupported method")
 
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     merge_path = read_session(g.sf, my_wxid, "merge_path")
     chat_count = ParsingMSG(merge_path).msg_count(wxid)
     return ReJson(0, chat_count)
@@ -301,12 +316,14 @@ def get_imgsrc(imgsrc):
     imgsrc = imgsrc + "?" + request.query_string.decode("utf-8")
 
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
 
     img_tmp_path = os.path.join(g.tmp_path, my_wxid, "imgsrc")
     if not os.path.exists(img_tmp_path):
         os.makedirs(img_tmp_path)
-    file_name = imgsrc.replace("http://", "").replace("https://", "").replace("/", "_").replace("?", "_")
+    file_name = imgsrc.replace(
+        "http://", "").replace("https://", "").replace("/", "_").replace("?", "_")
     file_name = file_name + ".jpg"
     # 如果文件名过长，则将文件明分为目录和文件名
     if len(file_name) > 255:
@@ -327,7 +344,8 @@ def get_imgsrc(imgsrc):
 @error9999
 def get_msgs():
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     merge_path = read_session(g.sf, my_wxid, "merge_path")
 
     start = request.json.get("start")
@@ -364,7 +382,8 @@ def get_img(img_path):
         return ReJson(1002)
 
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     wx_path = read_session(g.sf, my_wxid, "wx_path")
 
     img_path = img_path.replace("\\\\", "\\")
@@ -374,7 +393,8 @@ def get_img(img_path):
 
     if os.path.exists(original_img_path):
         fomt, md5, out_bytes = dat2img(original_img_path)
-        imgsavepath = os.path.join(img_tmp_path, img_path + "_" + ".".join([md5, fomt]))
+        imgsavepath = os.path.join(
+            img_tmp_path, img_path + "_" + ".".join([md5, fomt]))
         if not os.path.exists(os.path.dirname(imgsavepath)):
             os.makedirs(os.path.dirname(imgsavepath))
         with open(imgsavepath, "wb") as f:
@@ -387,7 +407,8 @@ def get_img(img_path):
 @api.route('/api/video/<path:videoPath>', methods=["GET", 'POST'])
 def get_video(videoPath):
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     wx_path = read_session(g.sf, my_wxid, "wx_path")
 
     videoPath = videoPath.replace("\\\\", "\\")
@@ -409,10 +430,12 @@ def get_video(videoPath):
 @api.route('/api/audio/<path:savePath>', methods=["GET", 'POST'])
 def get_audio(savePath):
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     merge_path = read_session(g.sf, my_wxid, "merge_path")
 
-    savePath = os.path.join(g.tmp_path, my_wxid, "audio", savePath)  # 这个是从url中获取的
+    savePath = os.path.join(g.tmp_path, my_wxid,
+                            "audio", savePath)  # 这个是从url中获取的
     if os.path.exists(savePath):
         return send_file(savePath)
 
@@ -425,7 +448,8 @@ def get_audio(savePath):
         os.makedirs(os.path.dirname(savePath))
 
     parsing_media_msg = ParsingMediaMSG(merge_path)
-    wave_data = parsing_media_msg.get_audio(MsgSvrID, is_play=False, is_wave=True, save_path=savePath, rate=24000)
+    wave_data = parsing_media_msg.get_audio(
+        MsgSvrID, is_play=False, is_wave=True, save_path=savePath, rate=24000)
     if not wave_data:
         return ReJson(1001, body="wave_data is required")
 
@@ -443,7 +467,8 @@ def get_file_info():
         return ReJson(1002)
 
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     wx_path = read_session(g.sf, my_wxid, "wx_path")
 
     all_file_path = os.path.join(wx_path, file_path)
@@ -452,8 +477,8 @@ def get_file_info():
     #     return ReJson(5002)
 
     file_name = os.path.basename(all_file_path)
-    # TODO: handle this on ui, 
-    # when response is 404 
+    # TODO: handle this on ui,
+    # when response is 404
     # just indicate the file need to be manually downloaded
     if not os.path.exists(all_file_path):
         return ReJson(0, {"file_name": file_name, "file_size": 0})
@@ -464,7 +489,8 @@ def get_file_info():
 @api.route('/api/file/<path:filePath>', methods=["GET", 'POST'])
 def get_file(filePath):
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     wx_path = read_session(g.sf, my_wxid, "wx_path")
 
     all_file_path = os.path.join(wx_path, filePath)
@@ -484,7 +510,8 @@ def get_export_endb():
     :return:
     """
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     wx_path = read_session(g.sf, my_wxid, "wx_path")
     wx_path = request.json.get("wx_path", wx_path)
 
@@ -516,10 +543,12 @@ def get_export_dedb():
     :return:
     """
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
 
     key = request.json.get("key", read_session(g.sf, my_wxid, "key"))
-    wx_path = request.json.get("wx_path", read_session(g.sf, my_wxid, "wx_path"))
+    wx_path = request.json.get(
+        "wx_path", read_session(g.sf, my_wxid, "wx_path"))
 
     if not key:
         return ReJson(1002, body=f"key is required: {key}")
@@ -532,7 +561,8 @@ def get_export_dedb():
     if not os.path.exists(outpath):
         os.makedirs(outpath)
 
-    code, merge_save_path = decrypt_merge(wx_path=wx_path, key=key, outpath=outpath)
+    code, merge_save_path = decrypt_merge(
+        wx_path=wx_path, key=key, outpath=outpath)
     time.sleep(1)
     if code:
         return ReJson(0, body=merge_save_path)
@@ -547,7 +577,8 @@ def get_export_csv():
     :return:
     """
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
 
     wxid = request.json.get("wxid")
     # st_ed_time = request.json.get("datetime", [0, 0])
@@ -563,7 +594,8 @@ def get_export_csv():
     if not os.path.exists(outpath):
         os.makedirs(outpath)
 
-    code, ret = export_csv(wxid, outpath, read_session(g.sf, my_wxid, "merge_path"))
+    code, ret = export_csv(
+        wxid, outpath, read_session(g.sf, my_wxid, "merge_path"))
     if code:
         return ReJson(0, ret)
     else:
@@ -577,7 +609,8 @@ def get_export_json():
     :return:
     """
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
 
     wxid = request.json.get("wxid")
     if not wxid:
@@ -587,7 +620,8 @@ def get_export_json():
     if not os.path.exists(outpath):
         os.makedirs(outpath)
 
-    code, ret = export_json(wxid, outpath, read_session(g.sf, my_wxid, "merge_path"))
+    code, ret = export_json(
+        wxid, outpath, read_session(g.sf, my_wxid, "merge_path"))
     if code:
         return ReJson(0, ret)
     else:
@@ -788,7 +822,8 @@ def get_date_count():
     获取日期统计
     """
     my_wxid = read_session(g.sf, "test", "last")
-    if not my_wxid: return ReJson(1001, body="my_wxid is required")
+    if not my_wxid:
+        return ReJson(1001, body="my_wxid is required")
     merge_path = read_session(g.sf, my_wxid, "merge_path")
     date_count = ParsingMSG(merge_path).date_count()
     return ReJson(0, date_count)
