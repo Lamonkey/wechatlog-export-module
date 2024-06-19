@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-#
 # -------------------------------------------------------------------------------
 # Name:         parsingMSG.py
-# Description:  
+# Description:
 # Author:       xaoyaoo
 # Date:         2024/04/15
 # -------------------------------------------------------------------------------
@@ -18,6 +18,7 @@ import blackboxprotobuf
 
 class ParsingMSG(DatabaseBase):
     _class_name = "MSG"
+
     def __init__(self, db_path):
         super().__init__(db_path)
 
@@ -31,7 +32,8 @@ class ParsingMSG(DatabaseBase):
             return None
         try:
             dst = lz4.block.decompress(data, uncompressed_size=len(data) << 8)
-            dst = dst.replace(b'\x00', b'')  # 已经解码完成后，还含有0x00的部分，要删掉，要不后面ET识别的时候会报错
+            # 已经解码完成后，还含有0x00的部分，要删掉，要不后面ET识别的时候会报错
+            dst = dst.replace(b'\x00', b'')
             uncompressed_data = dst.decode('utf-8', errors='ignore')
             return uncompressed_data
         except Exception as e:
@@ -41,9 +43,9 @@ class ParsingMSG(DatabaseBase):
         if BytesExtra is None or not isinstance(BytesExtra, bytes):
             return None
         # TODO:change to  use pattern to decode protocol
-        deserialize_data, message_type = blackboxprotobuf.decode_message(BytesExtra)
+        deserialize_data, message_type = blackboxprotobuf.decode_message(
+            BytesExtra)
         return deserialize_data
-      
 
     def msg_count(self, wxid: str = ""):
         """
@@ -129,8 +131,10 @@ class ParsingMSG(DatabaseBase):
         elif type_id == (3, 0):  # 图片
             DictExtra = self.get_BytesExtra(BytesExtra)
             DictExtra_str = str(DictExtra)
-            img_paths = [i for i in re.findall(r"(FileStorage.*?)'", DictExtra_str)]
-            img_paths = sorted(img_paths, key=lambda p: "Image" in p, reverse=True)
+            img_paths = [i for i in re.findall(
+                r"(FileStorage.*?)'", DictExtra_str)]
+            img_paths = sorted(
+                img_paths, key=lambda p: "Image" in p, reverse=True)
             if img_paths:
                 img_path = img_paths[0].replace("'", "")
                 img_path = [i for i in img_path.split("\\") if i]
@@ -155,8 +159,10 @@ class ParsingMSG(DatabaseBase):
             DictExtra = str(DictExtra)
 
             DictExtra_str = str(DictExtra)
-            video_paths = [i for i in re.findall(r"(FileStorage.*?)'", DictExtra_str)]
-            video_paths = sorted(video_paths, key=lambda p: "mp4" in p, reverse=True)
+            video_paths = [i for i in re.findall(
+                r"(FileStorage.*?)'", DictExtra_str)]
+            video_paths = sorted(
+                video_paths, key=lambda p: "mp4" in p, reverse=True)
             if video_paths:
                 video_path = video_paths[0].replace("'", "")
                 video_path = [i for i in video_path.split("\\") if i]
@@ -206,22 +212,27 @@ class ParsingMSG(DatabaseBase):
         elif type_id == (49, 2000):  # 转账消息
             CompressContent = self.decompress_CompressContent(CompressContent)
             content_tmp = xml2dict(CompressContent)
-            feedesc = content_tmp.get("appmsg", {}).get("wcpayinfo", {}).get("feedesc", "")
+            feedesc = content_tmp.get("appmsg", {}).get(
+                "wcpayinfo", {}).get("feedesc", "")
             content["msg"] = f"转账：{feedesc}"
             content["src"] = ""
+        # card-like link
+        elif type_id == (49, 5):
+            xml_str = self.decompress_CompressContent(CompressContent)
+            xml_dict = xml2dict(xml_str)
+            content['title'] = xml_dict['appmsg']['title']
+            content['src'] = xml_dict['appmsg']['url']
+            content['des'] = xml_dict['appmsg']['des']
+            content['sourcedisplayname'] = xml_dict['appmsg'].get(
+                'sourcedisplayname')
+            # TODO: get the thubnail image from bytesextra
+            # I can use the wechatmsg.compress_content.share_card
 
         elif type_id[0] == 49 and type_id[1] != 0:
-            if type_id[1] == 5:
-                xml_str = self.decompress_CompressContent(CompressContent)
-                xml_dict = xml2dict(xml_str)
-                content['title'] = xml_dict['appmsg']['title']
-                content['src'] = xml_dict['appmsg']['url']
-                content['des'] = xml_dict['appmsg']['des']
-            else:
-                DictExtra = self.get_BytesExtra(BytesExtra)
-                url = match_BytesExtra(DictExtra)
-                content["src"] = url
-                content["msg"] = type_name
+            DictExtra = self.get_BytesExtra(BytesExtra)
+            url = match_BytesExtra(DictExtra)
+            content["src"] = url
+            content["msg"] = type_name
 
         elif type_id == (50, 0):  # 语音通话
             content["msg"] = "语音/视频通话[%s]" % DisplayContent
@@ -241,15 +252,18 @@ class ParsingMSG(DatabaseBase):
                 bytes_extra = self.get_BytesExtra(BytesExtra)
                 if bytes_extra:
                     try:
-                        talker = bytes_extra['3'][0]['2'].decode('utf-8', errors='ignore')
+                        talker = bytes_extra['3'][0]['2'].decode(
+                            'utf-8', errors='ignore')
                         if "publisher-id" in talker:
                             talker = "系统"
                     except KeyError:
                         # attemp to use regular expression to get sender id
-                        decoded_string = BytesExtra.decode('ascii', errors='ignore')
-                        match = re.search(r'\x12\t([a-zA-Z0-9]+)', decoded_string)
+                        decoded_string = BytesExtra.decode(
+                            'ascii', errors='ignore')
+                        match = re.search(
+                            r'\x12\t([a-zA-Z0-9]+)', decoded_string)
                         talker = match.group(1) if match else "微信系统"
-    
+
             else:
                 talker = StrTalker
 
@@ -265,7 +279,7 @@ class ParsingMSG(DatabaseBase):
                 "ORDER BY CreateTime ASC LIMIT ?,?")
             if msg_type:
                 sql = sql.replace("ORDER BY CreateTime ASC LIMIT ?,?",
-                            f"AND Type={msg_type} ORDER BY CreateTime ASC LIMIT ?,?")
+                                  f"AND Type={msg_type} ORDER BY CreateTime ASC LIMIT ?,?")
             result1 = self.execute_sql(sql, (wxid, start_index, page_size))
         else:
             sql = (
@@ -273,7 +287,7 @@ class ParsingMSG(DatabaseBase):
                 "FROM MSG ORDER BY CreateTime ASC LIMIT ?,?")
             if msg_type:
                 sql = sql.replace("ORDER BY CreateTime ASC LIMIT ?,?",
-                            f"AND Type={msg_type} ORDER BY CreateTime ASC LIMIT ?,?")
+                                  f"AND Type={msg_type} ORDER BY CreateTime ASC LIMIT ?,?")
             result1 = self.execute_sql(sql, (start_index, page_size))
         if not result1:
             return [], []
@@ -287,7 +301,7 @@ class ParsingMSG(DatabaseBase):
             data.append(tmpdata)
         wxid_list = list(set(wxid_list))
         return data, wxid_list
-    
+
     def get_all_contact(self):
         """
         return desc sorted contact list from MSG table
