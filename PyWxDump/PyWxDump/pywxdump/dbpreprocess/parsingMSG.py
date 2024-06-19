@@ -216,6 +216,7 @@ class ParsingMSG(DatabaseBase):
                 "wcpayinfo", {}).get("feedesc", "")
             content["msg"] = f"转账：{feedesc}"
             content["src"] = ""
+
         # card-like link
         elif type_id == (49, 5):
             xml_str = self.decompress_CompressContent(CompressContent)
@@ -227,6 +228,11 @@ class ParsingMSG(DatabaseBase):
                 'sourcedisplayname')
             # TODO: get the thubnail image from bytesextra
             # I can use the wechatmsg.compress_content.share_card
+        # TODO: 推荐公众号, the xml contain
+        elif type_id == (42, 0):
+            xml_dict = xml2dict(StrContent)
+            for k, v in xml_dict.items():
+                content[k] = v
 
         elif type_id[0] == 49 and type_id[1] != 0:
             DictExtra = self.get_BytesExtra(BytesExtra)
@@ -295,8 +301,6 @@ class ParsingMSG(DatabaseBase):
         wxid_list = []
         for row in result1:
             tmpdata = self.msg_detail(row)
-            if tmpdata['type_name'] == '卡片式链接':
-                print('stop')
             wxid_list.append(tmpdata["talker"])
             data.append(tmpdata)
         wxid_list = list(set(wxid_list))
