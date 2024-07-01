@@ -112,7 +112,75 @@ class ParsingMSG(DatabaseBase):
     #         read_user_wx_id.append(talker)
     #     return user_list
 
+    def transcript_audio(self, audio_file):
+        if not os.path.exists(audio_file):
+            raise FileNotFoundError(
+                "Audio file not found: {}".format(audio_file))
+        return "This is the transcript"
+
+    def transcript_voice_msg(self, row):
+        '''
+        get transcript for a single voice message
+        '''
+        localId, IsSender, StrContent, StrTalker, Sequence, Type, SubType, CreateTime, MsgSvrID, DisplayContent, CompressContent, BytesExtra, id = row
+        CreateTime = timestamp2str(CreateTime)
+        # TODO: find a way to dynamiclly config the base path
+        base_path = "c:\\Users\\jianl\\Downloads\\pywxdumpv3027\\wxdump_tmp\\a38655162"
+        audio_file = os.path.join(base_path, "audio", f"{StrTalker}",
+                                  f"{CreateTime.replace(':', '-').replace(' ', '_')}_{IsSender}_{MsgSvrID}.wav")
+        try:
+            return self.transcript_audio(audio_file)
+        except FileNotFoundError as e:
+            print(e)
+            return None
+
+    def transcript_voice_msgs_from_ids(self, msg_ids):
+        '''
+        return None when doesn't exist
+        '''
+        #TODO: this method is not used
+        sql = (
+            "SELECT localId, IsSender, StrContent, StrTalker, Sequence, Type, SubType,CreateTime,MsgSvrID,DisplayContent,CompressContent,BytesExtra,ROW_NUMBER() OVER (ORDER BY CreateTime ASC) AS id "
+            "FROM MSG WHERE MsgSvrID=? "
+        )
+        for id in msg_ids:
+            row = self.execute_sql(sql, (id,))
+            if row[0]:
+                yield self.transcript_voice_msg(row[0])    
+            else:
+                yield None
+
+    def is_voice_msg_has_transcript(self, msg_id):
+        '''
+        check if a voice message has transcript
+        '''
+        sql = "SELECT * FROM WL_transcript WHERE MsgSvrID=(?)"
+        result = self.execute_sql(sql, (msg_id,))
+        return len(result) > 0
+    
+    def transcript_all_and_save_to_db(self):
+        '''
+        transcript all voice messages and save to db
+        '''
+        sql = (
+            "SELECT localId, IsSender, StrContent, StrTalker, Sequence, Type, SubType,CreateTime,MsgSvrID,DisplayContent,CompressContent,BytesExtra,ROW_NUMBER() OVER (ORDER BY CreateTime ASC) AS id "
+            "FROM MSG WHERE TYPE=? and SubType=?"
+        )
+        rows = self.execute_sql(sql, (34, 0))
+        for row in rows:
+            msg_id = row[8]
+            if self.is_voice_msg_has_transcript(msg_id):
+                print(f'skip {msg_id}')
+                continue
+            else:
+                transcript = self.transcript_voice_msg(row)
+                if transcript is None:
+                    continue
+
+                self.add_transcript(msg_id, transcript)
+
     # 单条消息处理
+
     def msg_detail(self, row):
         """
         获取单条消息详情,格式化输出
@@ -320,3 +388,67 @@ class ParsingMSG(DatabaseBase):
         if not result:
             return []
         return (row[0] for row in result)
+
+    def add_transcript(self, msg_id, transcript):
+        '''
+        add transcript to msg_id. If the WL_transcript table doesn't exist, create it.
+        '''
+        insert_sql = "INSERT INTO WL_transcript (MsgSvrID, transcription) VALUES (?, ?)"
+
+        try:
+            # Execute the SQL query with msg_id and transcript as parameters
+            self.execute_sql(insert_sql, (msg_id, transcript))
+            print("Transcript added successfully.")
+        except Exception as e:
+            # Handle any errors that occur during the database operation
+            print(f"An error occurred: {e}")
+
+    def delete_transcript(self, msg_ids: list):
+        '''
+        remove all transcript with id in msg_ids
+        '''
+        deletion_sql = "DELETE FROM WL_transcript WHERE MsgSvrID=(?)"
+        for id in msg_ids:
+            params = (id,)
+            self.execute_sql(deletion_sql, params)
+
+    def get_transcript(self, msg_ids=None, start_datetime=None, end_datetime=None):
+        '''
+        get transcript with msg_ids, and between start_datetime and end_datetime.
+        if msg_ids is empty list return None,
+        if msg_ids is None return all,
+        if start_datetime is None return all before end,
+        if end_datetime is None return all after start_datetime,
+        '''
+        sql_parts = ["SELECT * FROM WL_transcript"]
+        conditions = []
+
+        if msg_ids is not None:
+            placeholders = ', '.join(['?'] * len(msg_ids))
+            conditions.append(f"MsgSvrID IN ({placeholders})")
+
+        if start_datetime is not None:
+            conditions.append("CreateTime >= ?")
+
+        if end_datetime is not None:
+            conditions.append("CreateTime <= ?")
+
+        if conditions:
+            sql_parts.append("WHERE " + " AND ".join(conditions))
+
+        sql = " ".join(sql_parts)
+
+        params = []
+        if msg_ids is not None:
+            params.extend(msg_ids)
+        if start_datetime is not None:
+            params.append(start_datetime)
+        if end_datetime is not None:
+            params.append(end_datetime)
+
+        result = self.execute_sql(sql, params)
+
+        return result
+
+    def create_transcript(self, who, start_datetime, end_datetime):
+        pass
