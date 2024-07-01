@@ -53,8 +53,11 @@ class DatabaseBase:
                 cursor.execute(sql, params)
             else:
                 cursor.execute(sql)
+
+            connection.commit()
             return cursor.fetchall()
         except Exception as e1:
+            connection.rollback()
             try:
                 connection.text_factory = bytes
                 cursor = connection.cursor()
@@ -64,8 +67,10 @@ class DatabaseBase:
                     cursor.execute(sql)
                 rdata = cursor.fetchall()
                 connection.text_factory = str
+                connection.commit()
                 return rdata
             except Exception as e2:
+                connection.rollback()
                 logging.error(f"**********\nSQL: {sql}\nparams: {params}\n{e1}\n{e2}\n**********")
                 return None
 
