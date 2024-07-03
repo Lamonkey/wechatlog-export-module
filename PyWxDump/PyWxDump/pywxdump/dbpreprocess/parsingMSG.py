@@ -7,13 +7,14 @@
 # -------------------------------------------------------------------------------
 import os
 import re
-
+import textwrap
 import pandas as pd
 
 from .dbbase import DatabaseBase
 from .utils import get_md5, name2typeid, typeid2name, timestamp2str, xml2dict, match_BytesExtra
 import lz4.block
 import blackboxprotobuf
+from . import contentExtractor as extractor
 
 
 class ParsingMSG(DatabaseBase):
@@ -138,7 +139,7 @@ class ParsingMSG(DatabaseBase):
         '''
         return None when doesn't exist
         '''
-        #TODO: this method is not used
+        # TODO: this method is not used
         sql = (
             "SELECT localId, IsSender, StrContent, StrTalker, Sequence, Type, SubType,CreateTime,MsgSvrID,DisplayContent,CompressContent,BytesExtra,ROW_NUMBER() OVER (ORDER BY CreateTime ASC) AS id "
             "FROM MSG WHERE MsgSvrID=? "
@@ -146,7 +147,7 @@ class ParsingMSG(DatabaseBase):
         for id in msg_ids:
             row = self.execute_sql(sql, (id,))
             if row[0]:
-                yield self.transcript_voice_msg(row[0])    
+                yield self.transcript_voice_msg(row[0])
             else:
                 yield None
 
@@ -157,7 +158,7 @@ class ParsingMSG(DatabaseBase):
         sql = "SELECT * FROM WL_transcript WHERE MsgSvrID=(?)"
         result = self.execute_sql(sql, (msg_id,))
         return len(result) > 0
-    
+
     def transcript_all_and_save_to_db(self):
         '''
         transcript all voice messages and save to db
@@ -194,108 +195,49 @@ class ParsingMSG(DatabaseBase):
         content = {"src": "", "msg": StrContent}
 
         if type_id == (1, 0):  # 文本
-            content["msg"] = StrContent
+            content = extractor.extract_text_content(StrContent)
 
         elif type_id == (3, 0):  # 图片
             DictExtra = self.get_BytesExtra(BytesExtra)
             DictExtra_str = str(DictExtra)
-            img_paths = [i for i in re.findall(
-                r"(FileStorage.*?)'", DictExtra_str)]
-            img_paths = sorted(
-                img_paths, key=lambda p: "Image" in p, reverse=True)
-            if img_paths:
-                img_path = img_paths[0].replace("'", "")
-                img_path = [i for i in img_path.split("\\") if i]
-                img_path = os.path.join(*img_path)
-                content["src"] = img_path
-            else:
-                content["src"] = ""
-            content["msg"] = "图片"
+            content = extractor.extract_image_content(DictExtra_str)
+
         elif type_id == (34, 0):  # 语音
-            tmp_c = xml2dict(StrContent)
-            voicelength = tmp_c.get("voicemsg", {}).get("voicelength", "")
-            transtext = tmp_c.get("voicetrans", {}).get("transtext", "")
-            if voicelength.isdigit():
-                voicelength = int(voicelength) / 1000
-                voicelength = f"{voicelength:.2f}"
-            content[
-                "msg"] = f"语音时长：{voicelength}秒\n翻译结果：{transtext}" if transtext else f"语音时长：{voicelength}秒"
-            content["src"] = os.path.join("audio", f"{StrTalker}",
-                                          f"{CreateTime.replace(':', '-').replace(' ', '_')}_{IsSender}_{MsgSvrID}.wav")
+            content = extractor.extract_voice_content(StrContent,
+                                                      StrTalker,
+                                                      CreateTime,
+                                                      IsSender,
+                                                      MsgSvrID)
         elif type_id == (43, 0):  # 视频
             DictExtra = self.get_BytesExtra(BytesExtra)
             DictExtra = str(DictExtra)
-
-            DictExtra_str = str(DictExtra)
-            video_paths = [i for i in re.findall(
-                r"(FileStorage.*?)'", DictExtra_str)]
-            video_paths = sorted(
-                video_paths, key=lambda p: "mp4" in p, reverse=True)
-            if video_paths:
-                video_path = video_paths[0].replace("'", "")
-                video_path = [i for i in video_path.split("\\") if i]
-                video_path = os.path.join(*video_path)
-                content["src"] = video_path
-            else:
-                content["src"] = ""
-            content["msg"] = "视频"
+            content = extractor.extract_video_content(DictExtra)
 
         elif type_id == (47, 0):  # 动画表情
-            content_tmp = xml2dict(StrContent)
-            cdnurl = content_tmp.get("emoji", {}).get("cdnurl", "")
-            if cdnurl:
-                content = {"src": cdnurl, "msg": "表情"}
+            content = extractor.extract_emoji_content(StrContent)
 
-        elif type_id == (49, 0):
+        elif type_id == (49, 0):  # 文件
             DictExtra = self.get_BytesExtra(BytesExtra)
-            url = match_BytesExtra(DictExtra)
-            content["src"] = url
-            file_name = os.path.basename(url)
-            content["msg"] = file_name
+            content = extractor.extract_file_content(DictExtra)
 
         elif type_id == (49, 19):  # 合并转发的聊天记录
             CompressContent = self.decompress_CompressContent(CompressContent)
-            content_tmp = xml2dict(CompressContent)
-            title = content_tmp.get("appmsg", {}).get("title", "")
-            des = content_tmp.get("appmsg", {}).get("des", "")
-            recorditem = content_tmp.get("appmsg", {}).get("recorditem", "")
-            recorditem = xml2dict(recorditem)
-            content["msg"] = f"{title}\n{des}"
-            content["src"] = recorditem
+            content = extractor.extract_forwarded_message_content(
+                CompressContent)
 
         elif type_id == (49, 57):  # 带有引用的文本消息
             CompressContent = self.decompress_CompressContent(CompressContent)
-            content_tmp = xml2dict(CompressContent)
-            appmsg = content_tmp.get("appmsg", {})
-            title = appmsg.get("title", "")
-            refermsg = appmsg.get("refermsg", {})
-            displayname = refermsg.get("displayname", "")
-            display_content = refermsg.get("content", "")
-            display_createtime = refermsg.get("createtime", "")
-            display_createtime = timestamp2str(
-                int(display_createtime)) if display_createtime.isdigit() else display_createtime
-            content["msg"] = f"{title}\n\n[引用]({display_createtime}){displayname}:{display_content}"
-            content["src"] = ""
+            content = extractor.extract_quoted_message_content(CompressContent)
 
         elif type_id == (49, 2000):  # 转账消息
             CompressContent = self.decompress_CompressContent(CompressContent)
-            content_tmp = xml2dict(CompressContent)
-            feedesc = content_tmp.get("appmsg", {}).get(
-                "wcpayinfo", {}).get("feedesc", "")
-            content["msg"] = f"转账：{feedesc}"
-            content["src"] = ""
+            content = extractor.extract_transfer_content(CompressContent)
 
         # card-like link
         elif type_id == (49, 5):
             xml_str = self.decompress_CompressContent(CompressContent)
-            xml_dict = xml2dict(xml_str)
-            content['title'] = xml_dict['appmsg']['title']
-            content['src'] = xml_dict['appmsg']['url']
-            content['des'] = xml_dict['appmsg']['des']
-            content['sourcedisplayname'] = xml_dict['appmsg'].get(
-                'sourcedisplayname')
-            # TODO: get the thubnail image from bytesextra
-            # I can use the wechatmsg.compress_content.share_card
+            content = extractor.extract_card_content(xml_str)
+
         # TODO: 推荐公众号, the xml contain
         elif type_id == (42, 0):
             xml_dict = xml2dict(StrContent)
@@ -304,12 +246,11 @@ class ParsingMSG(DatabaseBase):
 
         elif type_id[0] == 49 and type_id[1] != 0:
             DictExtra = self.get_BytesExtra(BytesExtra)
-            url = match_BytesExtra(DictExtra)
-            content["src"] = url
-            content["msg"] = type_name
+            content = extractor.extract_other_type_content(
+                DictExtra, type_name)
 
         elif type_id == (50, 0):  # 语音通话
-            content["msg"] = "语音/视频通话[%s]" % DisplayContent
+            content = extractor.extract_call_content(DisplayContent)
 
         # elif type_id == (10000, 0):
         #     content["msg"] = StrContent
@@ -318,32 +259,78 @@ class ParsingMSG(DatabaseBase):
         # elif type_id == (10000, 8000):
         #     content["msg"] = StrContent
 
-        talker = "未知"
-        if IsSender == 1:
-            talker = "我"
-        else:
-            if StrTalker.endswith("@chatroom"):
-                bytes_extra = self.get_BytesExtra(BytesExtra)
-                if bytes_extra:
-                    try:
-                        talker = bytes_extra['3'][0]['2'].decode(
-                            'utf-8', errors='ignore')
-                        if "publisher-id" in talker:
-                            talker = "系统"
-                    except KeyError:
-                        # attemp to use regular expression to get sender id
-                        decoded_string = BytesExtra.decode(
-                            'ascii', errors='ignore')
-                        match = re.search(
-                            r'\x12\t([a-zA-Z0-9]+)', decoded_string)
-                        talker = match.group(1) if match else "微信系统"
-
-            else:
-                talker = StrTalker
+        talker = extractor.get_talker(IsSender,
+                                      StrTalker,
+                                      self.get_BytesExtra(BytesExtra),
+                                      BytesExtra)
 
         row_data = {"MsgSvrID": str(MsgSvrID), "type_name": type_name, "is_sender": IsSender, "talker": talker,
                     "room_name": StrTalker, "content": content, "CreateTime": CreateTime, "id": id}
         return row_data
+
+    def get_all_msgs(self):
+        '''
+        return iterator of msg processed by msg_detail
+        '''
+        sql = (
+            "SELECT localId, IsSender, StrContent, StrTalker, Sequence, Type, SubType,CreateTime,MsgSvrID,DisplayContent,CompressContent,BytesExtra,ROW_NUMBER() OVER (ORDER BY CreateTime ASC) AS id "
+            "FROM MSG"
+        )
+        rows = self.execute_sql(sql)
+        for row in rows:
+            yield self.msg_detail(row)
+
+    def is_table_exist(self, table_name):
+        sql = (
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
+        )
+        result = self.execute_sql(sql, (table_name,))
+        return result
+
+    def save_msg_to_WL_MSG(self):
+        # create table if ot exist
+        sql = (
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='WL_MSG'"
+        )
+        result = self.execute_sql(sql)
+        if not result:
+            sql = textwrap.dedent("""\
+            CREATE TABLE WL_MSG (
+                MsgSvrID INTEGER PRIMARY KEY,
+                type_name TEXT,
+                is_sender INTEGER,
+                talker TEXT,
+                room_name TEXT,
+                content TEXT,
+                CreateTime INT
+                )
+            """)
+            self.execute_sql(sql)
+        msgs = self.get_all_msgs()
+        for msg in msgs:
+            sql = (
+                "INSERT INTO WL_MSG (MsgSvrID, type_name, is_sender, talker, room_name, content, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            )
+            params = (msg["MsgSvrID"], msg["type_name"], msg["is_sender"],
+                      msg["talker"], msg["room_name"], 'content', msg["CreateTime"])
+            self.execute_sql(sql, params)
+
+    def get_msg_from_WL_MSG(self):
+        '''
+        return iterator of msg from MSG
+        '''
+        sql = (
+            "SELECT * FROM WL_MSG"
+        )
+
+    def empty_WL_MSG(self):
+        '''
+        empty WL_MSG table
+        '''
+        sql = (
+            "DELETE FROM WL_MSG"
+        )
+        self.execute_sql(sql)
 
     def msg_list(self, wxid="", start_index=0, page_size=500, msg_type: str = ""):
         if wxid:
@@ -449,6 +436,3 @@ class ParsingMSG(DatabaseBase):
         result = self.execute_sql(sql, params)
 
         return result
-
-    def create_transcript(self, who, start_datetime, end_datetime):
-        pass
