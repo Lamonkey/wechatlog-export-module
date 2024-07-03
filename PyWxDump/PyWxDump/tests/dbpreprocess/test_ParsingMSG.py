@@ -26,8 +26,13 @@ class TestUtils(unittest.TestCase):
 
     def test_get_all_contact(self):
         contacts = list(self.db_parser.get_all_contact())
-        print(contacts)
         self.assertTrue(len(contacts) > 0)
+
+    def test_this_table_exist(self):
+        self.assertTrue(self.db_parser.is_table_exist("MSG"))
+
+    def test_this_table_does_not_exist(self):
+        self.assertFalse(self.db_parser.is_table_exist("NOT_EXISTING_TABLE"))
 
 
 if __name__ == "__main__":
