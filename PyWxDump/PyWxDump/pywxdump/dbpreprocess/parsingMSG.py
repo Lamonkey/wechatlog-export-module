@@ -311,10 +311,10 @@ class ParsingMSG(DatabaseBase):
             sql = (
                 "INSERT INTO WL_MSG (MsgSvrID, type_name, is_sender, talker, room_name, content, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?)"
             )
+            content_str = str(msg['content'])
             params = (msg["MsgSvrID"], msg["type_name"], msg["is_sender"],
-                      msg["talker"], msg["room_name"], 'content', msg["CreateTime"])
+                      msg["talker"], msg["room_name"], content_str, msg["CreateTime"])
             self.execute_sql(sql, params)
-
     def get_msg_from_WL_MSG(self):
         '''
         return iterator of msg from MSG
