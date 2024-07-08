@@ -15,6 +15,7 @@ from .utils import get_md5, name2typeid, typeid2name, timestamp2str, xml2dict, m
 import lz4.block
 import blackboxprotobuf
 from . import contentExtractor as extractor
+from . import descGenerator as dg
 
 
 class ParsingMSG(DatabaseBase):
@@ -193,64 +194,78 @@ class ParsingMSG(DatabaseBase):
         type_name = typeid2name(type_id)
 
         content = {"src": "", "msg": StrContent}
+        description = 'no description'
 
         if type_id == (1, 0):  # 文本
             content = extractor.extract_text_content(StrContent)
+            description = dg.text(content)
 
         elif type_id == (3, 0):  # 图片
             DictExtra = self.get_BytesExtra(BytesExtra)
             DictExtra_str = str(DictExtra)
             content = extractor.extract_image_content(DictExtra_str)
-
+            description = dg.image(content)
         elif type_id == (34, 0):  # 语音
             content = extractor.extract_voice_content(StrContent,
                                                       StrTalker,
                                                       CreateTime,
                                                       IsSender,
                                                       MsgSvrID)
+            description = dg.voice(content)
+
         elif type_id == (43, 0):  # 视频
             DictExtra = self.get_BytesExtra(BytesExtra)
             DictExtra = str(DictExtra)
             content = extractor.extract_video_content(DictExtra)
+            description = dg.video(content)
 
         elif type_id == (47, 0):  # 动画表情
             content = extractor.extract_emoji_content(StrContent)
+            description = dg.emoji(content)
 
         elif type_id == (49, 0):  # 文件
             DictExtra = self.get_BytesExtra(BytesExtra)
             content = extractor.extract_file_content(DictExtra)
+            description = dg.file(content)
 
         elif type_id == (49, 19):  # 合并转发的聊天记录
             CompressContent = self.decompress_CompressContent(CompressContent)
             content = extractor.extract_forwarded_message_content(
                 CompressContent)
+            description = dg.forwarded_message(content)
 
         elif type_id == (49, 57):  # 带有引用的文本消息
             CompressContent = self.decompress_CompressContent(CompressContent)
             content = extractor.extract_quoted_message_content(CompressContent)
+            description = dg.quoted_message(content)
 
         elif type_id == (49, 2000):  # 转账消息
             CompressContent = self.decompress_CompressContent(CompressContent)
             content = extractor.extract_transfer_content(CompressContent)
+            description = dg.transfer(content)
 
         # card-like link
         elif type_id == (49, 5):
             xml_str = self.decompress_CompressContent(CompressContent)
             content = extractor.extract_card_content(xml_str)
+            description = dg.card(content)
 
         # TODO: 推荐公众号, the xml contain
         elif type_id == (42, 0):
             xml_dict = xml2dict(StrContent)
             for k, v in xml_dict.items():
                 content[k] = v
+            description = dg.contact_card(content)
 
         elif type_id[0] == 49 and type_id[1] != 0:
             DictExtra = self.get_BytesExtra(BytesExtra)
             content = extractor.extract_other_type_content(
                 DictExtra, type_name)
+            description = dg.other_type(content)
 
         elif type_id == (50, 0):  # 语音通话
             content = extractor.extract_call_content(DisplayContent)
+            description = dg.audio_call(content)
 
         # elif type_id == (10000, 0):
         #     content["msg"] = StrContent
@@ -264,8 +279,15 @@ class ParsingMSG(DatabaseBase):
                                       self.get_BytesExtra(BytesExtra),
                                       BytesExtra)
 
-        row_data = {"MsgSvrID": str(MsgSvrID), "type_name": type_name, "is_sender": IsSender, "talker": talker,
-                    "room_name": StrTalker, "content": content, "CreateTime": CreateTime, "id": id}
+        row_data = {"MsgSvrID": str(MsgSvrID),
+                    "type_name": type_name,
+                    "is_sender": IsSender,
+                    "talker": talker,
+                    "room_name": StrTalker,
+                    "content": content,
+                    "CreateTime": CreateTime,
+                    "id": id,
+                    "description": description}
         return row_data
 
     def get_all_msgs(self):
@@ -301,6 +323,7 @@ class ParsingMSG(DatabaseBase):
                 is_sender INTEGER,
                 talker TEXT,
                 room_name TEXT,
+                description TEXT,
                 content TEXT,
                 CreateTime INT
                 )
@@ -309,12 +332,19 @@ class ParsingMSG(DatabaseBase):
         msgs = self.get_all_msgs()
         for msg in msgs:
             sql = (
-                "INSERT INTO WL_MSG (MsgSvrID, type_name, is_sender, talker, room_name, content, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO WL_MSG (MsgSvrID, type_name, is_sender, talker, room_name, description ,content, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
             )
             content_str = str(msg['content'])
-            params = (msg["MsgSvrID"], msg["type_name"], msg["is_sender"],
-                      msg["talker"], msg["room_name"], content_str, msg["CreateTime"])
+            params = (msg["MsgSvrID"],
+                      msg["type_name"],
+                      msg["is_sender"],
+                      msg["talker"],
+                      msg["room_name"],
+                      msg['description'],
+                      content_str,
+                      msg["CreateTime"])
             self.execute_sql(sql, params)
+
     def get_msg_from_WL_MSG(self):
         '''
         return iterator of msg from MSG
