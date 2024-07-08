@@ -27,7 +27,7 @@ def extract_voice_content(StrContent,
                           MsgSvrID):
     tmp_c = xml2dict(StrContent)
     voicelength = tmp_c.get("voicemsg", {}).get("voicelength", "")
-    transtext = tmp_c.get("voicetrans", {}).get("transtext", "")
+    transtext = tmp_c.get("voicetrans", {}).get("transtext", "this is a transcription")
     if voicelength.isdigit():
         voicelength = int(voicelength) / 1000
         voicelength = f"{voicelength:.2f}"
@@ -37,7 +37,10 @@ def extract_voice_content(StrContent,
         "audio",
         f"{StrTalker}",
         f"{CreateTime.replace(':', '-').replace(' ', '_')}_{IsSender}_{MsgSvrID}.wav")
-    return {"src": src, "msg": msg}
+    return {"src": src,
+            "msg": msg,
+            'duration': voicelength,
+            'transcription': transtext}
 
 
 def extract_video_content(DictExtra):
@@ -74,7 +77,10 @@ def extract_forwarded_message_content(CompressContent):
     des = content_tmp.get("appmsg", {}).get("des", "")
     recorditem = content_tmp.get("appmsg", {}).get("recorditem", "")
     recorditem = xml2dict(recorditem)
-    return {"src": recorditem, "msg": f"{title}\n{des}"}
+    return {"src": recorditem,
+            "msg": f"{title}\n{des}",
+            'title': title,
+            'des': des}
 
 
 def extract_quoted_message_content(CompressContent):
@@ -87,15 +93,23 @@ def extract_quoted_message_content(CompressContent):
     display_createtime = refermsg.get("createtime", "")
     display_createtime = timestamp2str(
         int(display_createtime)) if display_createtime.isdigit() else display_createtime
+    # '看来你一般睡的挺晚的啊[Smart]\n\n[引用](2023-07-17 01:19:32)五餅二魚:现在还在屋里面上蹿下跳的'
     msg = f"{title}\n\n[引用]({display_createtime}){displayname}:{display_content}"
-    return {"src": "", "msg": msg}
+    return {"src": "",
+            "msg": msg,
+            'reply_with': title,
+            'reply_to': display_content,
+            'reply_to_name': displayname}
 
 
 def extract_transfer_content(CompressContent):
     content_tmp = xml2dict(CompressContent)
     feedesc = content_tmp.get("appmsg", {}).get(
         "wcpayinfo", {}).get("feedesc", "")
-    return {"src": "", "msg": f"转账：{feedesc}"}
+    return {"src": "",
+            "msg":
+            f"转账：{feedesc}",
+            "amount": feedesc}
 
 
 def extract_card_content(xml_str):
@@ -134,7 +148,7 @@ def get_talker(IsSender, StrTalker, bytes_extra, BytesExtra):
                     if "publisher-id" in talker:
                         return "系统"
                     return talker
-                except KeyError:
+                except (KeyError, AttributeError):
                     decoded_string = BytesExtra.decode(
                         'ascii', errors='ignore')
                     match = re.search(r'\x12\t([a-zA-Z0-9]+)', decoded_string)
