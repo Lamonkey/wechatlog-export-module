@@ -12,13 +12,14 @@ class TestUtils(unittest.TestCase):
         self.db_parser = parsor(self.merge_db_path)
 
     def tearDown(self):
-        self.db_parser.empty_WL_MSG()
+        # self.db_parser.empty_WL_MSG()
+        pass
         
     def test_export_msg_to_wl(self):
         self.db_parser.save_msg_to_WL_MSG()
         # check if WL_MSG table is not empty
         self.assertTrue(self.db_parser.is_table_exist("WL_MSG"))
-        
+
 
 
 if __name__ == "__main__":
