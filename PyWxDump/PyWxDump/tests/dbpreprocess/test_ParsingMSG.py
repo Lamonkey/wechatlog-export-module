@@ -34,6 +34,18 @@ class TestUtils(unittest.TestCase):
     def test_this_table_does_not_exist(self):
         self.assertFalse(self.db_parser.is_table_exist("NOT_EXISTING_TABLE"))
 
+    def test_get_No_WL_MSG_by_id(self):
+        msg = self.db_parser.get_WL_MSG_by_id(-1)
+        self.assertIsNone(msg)
+    
+    def test_get_WL_MSG(self):
+        msg = self.db_parser.get_WL_MSG_by_id(395102548385982)
+        self.assertIsNotNone(msg)
+        # print(msg)
+    
+    def test_none_existing_id(self):
+        msg = self.db_parser.get_WL_MSG_by_id(0)
+        self.assertIsNone(msg)
 
 if __name__ == "__main__":
     unittest.main()
