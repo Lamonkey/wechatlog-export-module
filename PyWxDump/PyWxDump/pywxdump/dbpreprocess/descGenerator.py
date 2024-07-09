@@ -36,10 +36,11 @@ def forwarded_message(content):
 
 
 def quoted_message(content):
+    ref_description = content.get('ref_desc', 'no description')
     reply_with = content.get('reply_with', 'empty content')
-    reply_to = content.get('reply_to', 'empty content')
+    # reply_to = content.get('reply_to', 'empty content')
     reply_to_name = content.get('reply_to_name', 'unkown name')
-    return f"reply {reply_to_name}'s message '{reply_to}' with '{reply_with}'"
+    return f"reply {reply_to_name}'s message '{ref_description}' with '{reply_with}'"
 
 
 def transfer(content):
