@@ -237,6 +237,16 @@ class ParsingMSG(DatabaseBase):
         elif type_id == (49, 57):  # 带有引用的文本消息
             CompressContent = self.decompress_CompressContent(CompressContent)
             content = extractor.extract_quoted_message_content(CompressContent)
+            # get referce id
+            ref_id = content.get('refer_id', -1)
+            # get referece entity of msg
+            ref_msg = self.get_WL_MSG_by_id(ref_id)
+            # add description of ref msg to content
+            if ref_msg:
+                content['ref_desc'] = ref_msg.get(
+                    'description', 'no description for this message')
+            else:
+                content['ref_desc'] = 'no description for this message'
             description = dg.quoted_message(content)
 
         elif type_id == (49, 2000):  # 转账消息
@@ -278,7 +288,8 @@ class ParsingMSG(DatabaseBase):
                                       StrTalker,
                                       self.get_BytesExtra(BytesExtra),
                                       BytesExtra)
-
+        if MsgSvrID == 226507624180116620:
+            print('stop')
         row_data = {"MsgSvrID": str(MsgSvrID),
                     "type_name": type_name,
                     "is_sender": IsSender,
@@ -352,6 +363,22 @@ class ParsingMSG(DatabaseBase):
         sql = (
             "SELECT * FROM WL_MSG"
         )
+
+    def get_WL_MSG_by_id(self, msg_id):
+        '''
+        Retrieve a single message by its ID from the WL_MSG table.
+        '''
+        if msg_id == -1:
+            return None
+        sql = "SELECT * FROM WL_MSG WHERE MsgSvrID = ?"
+        result = self.execute_sql(sql, (msg_id,))
+        if not result:
+            return None
+        keys = ['MsgSvrID', 'type_name', 'is_sender', 'talker',
+                'room_name', 'description', 'content', 'CreateTime']
+        message_data = tuple(field.decode(
+            'utf-8') if isinstance(field, bytes) else field for field in result[0])
+        return dict(zip(keys, message_data))
 
     def empty_WL_MSG(self):
         '''
