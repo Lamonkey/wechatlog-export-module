@@ -88,6 +88,7 @@ def extract_quoted_message_content(CompressContent):
     appmsg = content_tmp.get("appmsg", {})
     title = appmsg.get("title", "")
     refermsg = appmsg.get("refermsg", {})
+    refer_id = int(refermsg.get('svrid', -1))
     displayname = refermsg.get("displayname", "")
     display_content = refermsg.get("content", "")
     display_createtime = refermsg.get("createtime", "")
@@ -99,6 +100,7 @@ def extract_quoted_message_content(CompressContent):
             "msg": msg,
             'reply_with': title,
             'reply_to': display_content,
+            'refer_id': refer_id,
             'reply_to_name': displayname}
 
 
