@@ -6,7 +6,6 @@
 # Date:         2024/04/15
 # -------------------------------------------------------------------------------
 import pandas as pd
-from functools import lru_cache
 from .parsingFavorite import ParsingFavorite
 from .parsingMSG import ParsingMSG
 from .parsingMicroMsg import ParsingMicroMsg
@@ -78,7 +77,7 @@ def get_recent_user_list(MicroMsg_db_path, OpenIMContact_db_path=None, limit=200
     users = users.to_dict(orient="records")
     return users
 
-@lru_cache(maxsize=128)
+
 def wxid2userinfo(MicroMsg_db_path, OpenIMContact_db_path, wxid):
     """
     获取联系人信息
