@@ -288,8 +288,7 @@ class ParsingMSG(DatabaseBase):
                                       StrTalker,
                                       self.get_BytesExtra(BytesExtra),
                                       BytesExtra)
-        if MsgSvrID == 226507624180116620:
-            print('stop')
+
         row_data = {"MsgSvrID": str(MsgSvrID),
                     "type_name": type_name,
                     "is_sender": IsSender,
@@ -304,6 +303,9 @@ class ParsingMSG(DatabaseBase):
     def get_all_msgs(self):
         '''
         return iterator of msg processed by msg_detail
+
+        the msg_detail function is what pywxdump used to 
+        aggregate and process wx msg from the orignal MSG table
         '''
         sql = (
             "SELECT localId, IsSender, StrContent, StrTalker, Sequence, Type, SubType,CreateTime,MsgSvrID,DisplayContent,CompressContent,BytesExtra,ROW_NUMBER() OVER (ORDER BY CreateTime ASC) AS id "
