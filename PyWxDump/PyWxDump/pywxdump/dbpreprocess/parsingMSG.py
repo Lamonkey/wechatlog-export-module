@@ -321,6 +321,9 @@ class ParsingMSG(DatabaseBase):
         return result
 
     def save_msg_to_WL_MSG(self):
+        '''
+        export all msg to a WL_MSG table with specific schema
+        '''
         # create table if ot exist
         sql = (
             "SELECT name FROM sqlite_master WHERE type='table' AND name='WL_MSG'"
