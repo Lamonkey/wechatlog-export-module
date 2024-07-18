@@ -33,7 +33,14 @@ class DatabaseBase:
         connection = sqlite3.connect(db_path, check_same_thread=False)
         logging.info(f"{connection} 连接句柄创建 {db_path}")
         return connection
-
+    
+    def is_table_exist(self, table_name):
+        sql = (
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
+        )
+        result = self.execute_sql(sql, (table_name,))
+        return result
+    
     def execute_sql(self, sql, params=None):
         """
         执行SQL语句
