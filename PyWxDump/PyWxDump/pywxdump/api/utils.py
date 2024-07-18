@@ -14,7 +14,33 @@ import shutil
 import traceback
 from .rjson import ReJson
 from functools import wraps
+from pywxdump.dbpreprocess.utils import dat2img
 
+def decrpyt_img_to(encrypted_img_path, wx_path, dst):
+    """
+    Decrypts an encrypted image and saves it to a temporary path.
+
+    Parameters:
+    - encrypted_img_path (str): The path to the encrypted image.
+    - wx_path (str): The base path where the encrypted image is stored.
+        wx_path is needed to genrete the outut dirname
+    - dst (str): dest to save decrepted image.
+
+    Returns:
+    - str: The path to the saved decrypted image if successful, or an error message.
+    """
+    original_img_path = os.path.join(wx_path, encrypted_img_path)
+    if not os.path.exists(original_img_path):
+        return None, f"Image path does not exist: {original_img_path}"
+
+    fomt, md5, out_bytes = dat2img(original_img_path)
+    img_save_path = os.path.join(dst, encrypted_img_path + "_" + ".".join([md5, fomt]))
+    if not os.path.exists(os.path.dirname(img_save_path)):
+        os.makedirs(os.path.dirname(img_save_path))
+    with open(img_save_path, "wb") as f:
+        f.write(out_bytes)
+    
+    return img_save_path, None
 
 def read_session(session_file, wxid, arg):
     try:

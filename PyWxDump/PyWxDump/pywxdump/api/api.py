@@ -18,7 +18,7 @@ import pywxdump
 from flask import Flask, request, render_template, g, Blueprint, send_file, make_response, session
 from pywxdump import get_core_db, all_merge_real_time_db
 from pywxdump.api.rjson import ReJson, RqJson
-from pywxdump.api.utils import read_session, get_session_wxids, save_session, error9999, gen_base64, validate_title, merge_folders
+from pywxdump.api.utils import read_session, save_session, error9999, merge_folders, decrpyt_img_to
 from pywxdump import read_info, VERSION_LIST, batch_decrypt, BiasAddr, merge_db, decrypt_merge, merge_real_time_db
 
 from pywxdump.dbpreprocess import wxid2userinfo, ParsingMSG, get_user_list, get_recent_user_list, ParsingMediaMSG, \
@@ -375,15 +375,16 @@ def get_msgs():
     return ReJson(0, {"msg_list": msgs, "user_list": user_list})
 
 
-@api.route('/api/img/<path:img_path>', methods=["GET", 'POST'])
+@api.route('/api/img/<path:encrypted_img_path>', methods=["GET", 'POST'])
 @error9999
-def get_img(img_path):
+def get_img(encrypted_img_path):
     """
     获取图片
+    image use file path of the .db file to get the decpreted image path
     :return:
     """
 
-    if not img_path:
+    if not encrypted_img_path:
         return ReJson(1002)
 
     my_wxid = read_session(g.sf, "test", "last")
@@ -391,22 +392,17 @@ def get_img(img_path):
         return ReJson(1001, body="my_wxid is required")
     wx_path = read_session(g.sf, my_wxid, "wx_path")
 
-    img_path = img_path.replace("\\\\", "\\")
+    encrypted_img_path = encrypted_img_path.replace("\\\\", "\\")
 
-    img_tmp_path = os.path.join(g.tmp_path, my_wxid, "img")
-    original_img_path = os.path.join(wx_path, img_path)
+    save_to_dir = os.path.join(g.tmp_path, my_wxid, "img")
 
-    if os.path.exists(original_img_path):
-        fomt, md5, out_bytes = dat2img(original_img_path)
-        imgsavepath = os.path.join(
-            img_tmp_path, img_path + "_" + ".".join([md5, fomt]))
-        if not os.path.exists(os.path.dirname(imgsavepath)):
-            os.makedirs(os.path.dirname(imgsavepath))
-        with open(imgsavepath, "wb") as f:
-            f.write(out_bytes)
-        return send_file(imgsavepath)
+    decrypted_img_path, error = decrpyt_img_to(encrypted_img_path, 
+                                               wx_path, 
+                                               save_to_dir)
+    if error:
+        return ReJson(1001, body=error)
     else:
-        return ReJson(1001, body=original_img_path)
+        return send_file(decrypted_img_path)
 
 
 @api.route('/api/video/<path:videoPath>', methods=["GET", 'POST'])
