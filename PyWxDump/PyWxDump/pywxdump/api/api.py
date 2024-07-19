@@ -56,6 +56,7 @@ def init_last():
             return ReJson(0, rdata)
     return ReJson(0, {"is_init": False, "my_wxid": ""})
 
+
 @api.route('/api/export_db', methods=["GET"])
 def export_db():
     db_path = request.args.get("db_path")
@@ -395,12 +396,13 @@ def get_img(encrypted_img_path):
     encrypted_img_path = encrypted_img_path.replace("\\\\", "\\")
 
     save_to_dir = os.path.join(g.tmp_path, my_wxid, "img")
+    try:
+        decrypted_img_path = decrpyt_img_to(encrypted_img_path,
+                                            wx_path,
+                                            save_to_dir)
+    except FileNotFoundError as e:
+        return ReJson(1001, body=str(e))
 
-    decrypted_img_path, error = decrpyt_img_to(encrypted_img_path, 
-                                               wx_path, 
-                                               save_to_dir)
-    if error:
-        return ReJson(1001, body=error)
     else:
         return send_file(decrypted_img_path)
 

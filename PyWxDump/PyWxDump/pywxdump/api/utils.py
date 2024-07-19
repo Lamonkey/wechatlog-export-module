@@ -31,8 +31,8 @@ def decrpyt_img_to(encrypted_img_path, wx_path, dst):
     """
     original_img_path = os.path.join(wx_path, encrypted_img_path)
     if not os.path.exists(original_img_path):
-        return None, f"Image path does not exist: {original_img_path}"
-
+        raise FileNotFoundError(f"Image path does not exist: {original_img_path}")
+        
     fomt, md5, out_bytes = dat2img(original_img_path)
     img_save_path = os.path.join(dst, encrypted_img_path + "_" + ".".join([md5, fomt]))
     if not os.path.exists(os.path.dirname(img_save_path)):
@@ -40,7 +40,7 @@ def decrpyt_img_to(encrypted_img_path, wx_path, dst):
     with open(img_save_path, "wb") as f:
         f.write(out_bytes)
     
-    return img_save_path, None
+    return img_save_path
 
 def read_session(session_file, wxid, arg):
     try:
