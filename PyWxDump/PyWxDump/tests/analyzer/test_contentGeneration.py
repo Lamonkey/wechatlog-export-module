@@ -7,6 +7,7 @@ import shutil
 class TestUtils(unittest.TestCase):
 
     def setUp(self):
+        # for image
         self.save_to = "c:\\Users\\jianl\\Downloads\\pywxdumpv3027\\output_folder\\"
         self.img_entry = {'MsgSvrID': '7937950990010314980',
                           'type_name': '图片',
@@ -23,6 +24,23 @@ class TestUtils(unittest.TestCase):
         if not os.path.exists(self.save_to):
             os.makedirs(self.save_to)
 
+        # for audio
+        self.audio_entry = {
+            'MsgSvrID': '2149179895562747041',
+            'type_name': '语音',
+            'is_sender': 0,
+            'talker': 'qunaer001',
+            'room_name': 'qunaer001',
+            'content': {'src': 'audio\\qunaer001\\2024-06-10_18-46-31_0_2149179895562747041.wav',
+                        'msg': '语音时长：\\37.39秒\n        翻译结果：this is a transcription',
+                        'duration': '37.39',
+                        'transcription': 'this is a transcription'},
+            'CreateTime': '2024-06-10 18:46:31',
+            'id': 1937,
+            'description': "a 37.39 seconds audio with transcription: 'this is a transcription'",
+            'mentioned_user': []
+        }
+
     def tearDown(self):
         if os.path.exists(self.save_to):
             shutil.rmtree(self.save_to)
@@ -34,7 +52,6 @@ class TestUtils(unittest.TestCase):
             CG.add_image_content(invalid_img_entry,
                                  self.wechat_path,
                                  self.save_to)
-
 
     def test_add_image_without_abs_path(self):
         save_to = "./output_folder"
@@ -52,6 +69,17 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(os.path.exists(
             os.path.join(self.save_to,
                          decrypted_img)
+        ))
+
+    def test_add_audio_content(self):
+        content = CG.add_audio_content(self.audio_entry,
+                                       self.wechat_path,
+                                       self.save_to)
+        audio_path = content.get('audio_path')
+        self.assertIsNotNone(audio_path)
+        self.assertTrue(os.path.exists(
+            os.path.join(self.save_to,
+                         audio_path)
         ))
 
 
