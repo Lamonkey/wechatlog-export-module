@@ -16,7 +16,7 @@ import lz4.block
 import blackboxprotobuf
 from . import contentExtractor as extractor
 from . import descGenerator as dg
-
+# from pywxdump.analyzer import contentGeneration as cg
 
 class ParsingMSG(DatabaseBase):
     _class_name = "MSG"
@@ -190,6 +190,7 @@ class ParsingMSG(DatabaseBase):
         localId, IsSender, StrContent, StrTalker, Sequence, Type, SubType, CreateTime, MsgSvrID, DisplayContent, CompressContent, BytesExtra, id = row
         CreateTime = timestamp2str(CreateTime)
 
+
         type_id = (Type, SubType)
         type_name = typeid2name(type_id)
 
@@ -283,12 +284,13 @@ class ParsingMSG(DatabaseBase):
         #     content["msg"] = StrContent
         # elif type_id == (10000, 8000):
         #     content["msg"] = StrContent
-
         talker = extractor.get_talker(IsSender,
                                       StrTalker,
                                       self.get_BytesExtra(BytesExtra),
                                       BytesExtra)
-
+        mentioned_user = extractor.extract_mentioned_user(
+            self.get_BytesExtra(BytesExtra)
+            )
         row_data = {"MsgSvrID": str(MsgSvrID),
                     "type_name": type_name,
                     "is_sender": IsSender,
@@ -297,7 +299,8 @@ class ParsingMSG(DatabaseBase):
                     "content": content,
                     "CreateTime": CreateTime,
                     "id": id,
-                    "description": description}
+                    "description": description,
+                    'mentioned_user': mentioned_user}
         return row_data
 
     def get_all_msgs(self):
@@ -322,44 +325,57 @@ class ParsingMSG(DatabaseBase):
         result = self.execute_sql(sql, (table_name,))
         return result
 
-    def save_msg_to_WL_MSG(self):
-        '''
-        export all msg to a WL_MSG table with specific schema
-        '''
-        # create table if ot exist
-        sql = (
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='WL_MSG'"
-        )
-        result = self.execute_sql(sql)
-        if not result:
-            sql = textwrap.dedent("""\
-            CREATE TABLE WL_MSG (
-                MsgSvrID INTEGER PRIMARY KEY,
-                type_name TEXT,
-                is_sender INTEGER,
-                talker TEXT,
-                room_name TEXT,
-                description TEXT,
-                content TEXT,
-                CreateTime INT
-                )
-            """)
-            self.execute_sql(sql)
-        msgs = self.get_all_msgs()
-        for msg in msgs:
-            sql = (
-                "INSERT INTO WL_MSG (MsgSvrID, type_name, is_sender, talker, room_name, description ,content, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            )
-            content_str = str(msg['content'])
-            params = (msg["MsgSvrID"],
-                      msg["type_name"],
-                      msg["is_sender"],
-                      msg["talker"],
-                      msg["room_name"],
-                      msg['description'],
-                      content_str,
-                      msg["CreateTime"])
-            self.execute_sql(sql, params)
+    # def save_msg_to_WL_MSG(self):
+    #     '''
+    #     export all msg to a WL_MSG table with specific schema
+    #     '''
+    #     # create table if ot exist
+    #     sql = (
+    #         "SELECT name FROM sqlite_master WHERE type='table' AND name='WL_MSG'"
+    #     )
+    #     result = self.execute_sql(sql)
+    #     if not result:
+    #         sql = textwrap.dedent("""\
+    #         CREATE TABLE WL_MSG (
+    #             MsgSvrID INTEGER PRIMARY KEY,
+    #             type_name TEXT,
+    #             is_sender INTEGER,
+    #             talker TEXT,
+    #             room_name TEXT,
+    #             description TEXT,
+    #             content TEXT,
+    #             whom TEXT,
+    #             CreateTime INT
+    #             )
+    #         """)
+    #         self.execute_sql(sql)
+    #     msgs = self.get_all_msgs()
+    #     for msg in msgs:
+    #         sql = (
+    #             "INSERT INTO WL_MSG (MsgSvrID, type_name, is_sender, talker, room_name, description ,content, whom, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    #         )
+    #         whom = msg['mentioned_user']
+    #         content = cg.get_content_by_type(msg)
+    #         content_str = str(content)
+    #         # append room_name if not a chatroom
+    #         if 'chatroom' not in msg['room_name']:
+    #             whom.append(msg['room_name'])
+    #         # append reply_to if is quote_msg
+    #         if msg['type_name'] == '带有引用的文本消息':
+    #             whom.append(msg['content']['reply_to_name'])
+
+    #         content = cg.get_content_by_type(ParsingMSG)
+    
+    #         params = (msg["MsgSvrID"],
+    #                   msg["type_name"],
+    #                   msg["is_sender"],
+    #                   msg["talker"],
+    #                   msg["room_name"],
+    #                   msg['description'],
+    #                   content_str,
+    #                   " ".join(whom),
+    #                   msg["CreateTime"])
+    #         self.execute_sql(sql, params)
 
     def get_msg_from_WL_MSG(self):
         '''
@@ -498,3 +514,5 @@ class ParsingMSG(DatabaseBase):
         result = self.execute_sql(sql, params)
 
         return result
+ 
+
