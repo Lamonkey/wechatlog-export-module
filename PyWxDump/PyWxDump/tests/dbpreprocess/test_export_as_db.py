@@ -8,10 +8,12 @@ from pywxdump.dbpreprocess.parsingMSG import ParsingMSG as parsor
 
 
 class TestUtils(unittest.TestCase):
+    merge_db_path = "c:\\Users\\jianl\\Downloads\\pywxdumpv3027\\wxdump_tmp\\a38655162\\merge_all.db"
+    wx_root = 'C:\\Users\\jianl\\Documents\\WeChat Files\\a38655162'
+    save_to = 'C:\\Users\\jianl\\Downloads\\pywxdumpv3027\\wxdump_tmp\\a38655162'
+    path_to_merge_db = 'c:\\Users\\jianl\\Downloads\\pywxdumpv3027\\wxdump_tmp\\a38655162\\merge_all.db'
+    # TODO add token for gpt here
     def setUp(self):
-        # Create temporary source and destination folders
-        #TODO: replace this with path to merge all db 
-        self.merge_db_path = "c:\\Users\\jianl\\Downloads\\pywxdumpv3027\\wxdump_tmp\\a38655162\\merge_all.db"
         self.db_parser = parsor(self.merge_db_path)
 
     def tearDown(self):
@@ -50,7 +52,12 @@ class TestUtils(unittest.TestCase):
             )
             whom = msg['mentioned_user']
             try:
-                content = cg.get_content_by_type(msg)
+                content = cg.get_content_by_type(msg,
+                                                 self.wx_root,
+                                                 self.save_to,
+                                                 self.vision_api_key,
+                                                 self.path_to_merge_db,
+                                                 self.open_ai_api_key)
                 content_str = str(content)
                 # append room_name if not a chatroom
                 if 'chatroom' not in msg['room_name']:
