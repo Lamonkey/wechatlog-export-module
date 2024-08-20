@@ -3,6 +3,35 @@ import re
 from .utils import xml2dict, match_BytesExtra, timestamp2str
 
 
+def clean_username(atuserlist):
+    if not isinstance("".join(atuserlist), str):
+        return atuserlist
+    # Use regular expression to find the content within <![CDATA[ ... ]]>
+    match = re.search(r'<!\[CDATA\[(.*?)\]\]>', "".join(atuserlist))
+    if match:
+        # Extract the content and remove any leading commas
+        cleaned_usernames = match.group(1).split(',')
+        return [username for username in cleaned_usernames if username]
+    else:
+        return atuserlist
+
+
+def extract_mentioned_user(bytes_extra):
+    '''
+    if the inputed userlist contain <atuserlist> tag, extract the userlist
+    '''
+    # Use regular expression to find the content within <atuserlist> tags
+    match = re.search(r'<atuserlist>(.*?)</atuserlist>',
+                      str(bytes_extra))
+    if match:
+        # Split the content by commas to get a list of users
+        atuserlist = match.group(1).split(' ')
+        cleaned_atuserlist = clean_username(atuserlist)
+        return cleaned_atuserlist
+    else:
+        return []
+
+
 def extract_text_content(StrContent):
     return {"src": "", "msg": StrContent}
 
@@ -27,7 +56,8 @@ def extract_voice_content(StrContent,
                           MsgSvrID):
     tmp_c = xml2dict(StrContent)
     voicelength = tmp_c.get("voicemsg", {}).get("voicelength", "")
-    transtext = tmp_c.get("voicetrans", {}).get("transtext", "this is a transcription")
+    transtext = tmp_c.get("voicetrans", {}).get(
+        "transtext", "this is a transcription")
     if voicelength.isdigit():
         voicelength = int(voicelength) / 1000
         voicelength = f"{voicelength:.2f}"
