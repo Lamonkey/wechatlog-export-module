@@ -20,7 +20,7 @@ def _encode_image(image_path):
         return base64.b64encode(image_file.read()).decode('utf-8')
 
 
-def _get_img_description(path_or_url: str) -> str:
+def _get_img_description(path_or_url: str, api_key) -> str:
     # TODO: factor to a utility file without leading underscore
     """ get an image's text description
 
@@ -37,9 +37,7 @@ def _get_img_description(path_or_url: str) -> str:
     payload = {'type': 'image_url'}
 
     try:
-        # TODO: remove this before commit
-        client = OpenAI(api_key='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')
-        # client = OpenAI()
+        client = OpenAI(api_key=api_key)
     except Exception as e:
         logging.error(f"openai error: {e}")
         return None
@@ -94,15 +92,20 @@ def add_text_content(msg: dict) -> dict:
     return content
 
 
-def add_image_content(msg: dict, wechat_path: str, save_to: str) -> dict:
+def add_image_content(msg: dict,
+                      wx_root: str,
+                      save_to: str,
+                      api_key: str,
+                      enable_gpt_vision=False,
+                      ) -> dict:
     '''return content with decrypted_img, description, encrypted_img
 
     Parameters
     ----------
     msg:
         msg need to contain['content']['src']
-    wechat_path:
-        path to wechat folder
+    wx_root:
+        path to account folder under wx
     save_to:
         path to save the decrypted img
 
@@ -116,20 +119,24 @@ def add_image_content(msg: dict, wechat_path: str, save_to: str) -> dict:
     '''
     if not os.path.isabs(save_to):
         raise ValueError("save_to must be an absolute path")
-    content = {'encrypted_img': msg['content']['src']}
     # TODO: make sure not absolute path, \
     # becaues whole problem will break by just move to another folder
     saved_path = utils.decrpyt_img_to(
         msg['content']['src'],
-        wechat_path,
+        wx_root,
         save_to
     )
-    content['decrypted_img'] = saved_path
-    content['description'] = _get_img_description(saved_path)
-    return content
+    description = None
+    if enable_gpt_vision:
+        description = _get_img_description(saved_path, api_key)
+    return {
+        'encrypted_img': msg['content']['src'],
+        'description': description,
+        'decrypted_img': saved_path
+    }
 
 
-def _transcript(audio_path):
+def _transcript(audio_path, api_key):
     '''transcript by openai whsiper-1 model
 
     Returns
@@ -143,7 +150,7 @@ def _transcript(audio_path):
     client = None
     try:
         client = OpenAI(
-            api_key='sk-proj-dgVgtDHPxP54DcNpiiklT3BlbkFJzKmdJVcN1nA2KYKErDYR')
+            api_key=api_key)
     except Exception as e:
         logging.error(f"openai error: {e}")
         return None
@@ -160,7 +167,11 @@ def _transcript(audio_path):
         return None
 
 
-def add_audio_content(msg, wechat_path, save_to):
+def add_audio_content(msg,
+                      merge_db_path,
+                      save_to,
+                      api_key,
+                      enable_whsiper=False):
     '''return new cotent with audio_path, transcription
 
     Parameters
@@ -185,15 +196,15 @@ def add_audio_content(msg, wechat_path, save_to):
     directory = os.path.dirname(save_at)
     if not os.path.exists(directory):
         os.makedirs(directory)
-    # TODO: remove this hard coded path_to_merge_db, consider create a singleton for this class
-    path_to_merge_db = 'c:\\Users\\jianl\\Downloads\\pywxdumpv3027\\wxdump_tmp\\a38655162\\merge_all.db'
-    pcm_data = ParsingMediaMSG(path_to_merge_db)\
+    pcm_data = ParsingMediaMSG(merge_db_path)\
         .get_audio(msg['MsgSvrID'],
                    is_play=False,
                    is_wave=True,
                    save_path=save_at,
                    rate=24000)
-    transcription = _transcript(save_at)
+    transcription = None
+    if enable_whsiper:
+        transcription = _transcript(save_at, api_key)
     content = {
         'audio_path': save_at,
         'transcription': transcription
@@ -201,7 +212,7 @@ def add_audio_content(msg, wechat_path, save_to):
     return content
 
 
-def add_cardlike_content(msg: dict) -> dict:
+def add_cardlike_content(msg: dict, api_key, enable_scrapper=False) -> dict:
     '''Return content with url, author, displayed_title, displayed_description, and summary.
 
     Parameters
@@ -227,17 +238,6 @@ def add_cardlike_content(msg: dict) -> dict:
     None: if any of the required keys are missing or
     if the scraping pipeline fails to find a summary.
     '''
-    # Define the configuration for the scraping pipeline
-    graph_config = {
-        "llm": {
-            # TODO: remove before commit
-            "api_key": 'sk-proj-dgVgtDHPxP54DcNpiiklT3BlbkFJzKmdJVcN1nA2KYKErDYR',
-            "model": "gpt-3.5-turbo",
-        },
-        "verbose": True,
-        "headless": True,
-    }
-
     source = None
     displayed_title = None
     displayed_description = None
@@ -253,16 +253,32 @@ def add_cardlike_content(msg: dict) -> dict:
         logger.error(f"required key in content: {e}")
         return None
 
-    # Create the SmartScraperGraph instance
-    smart_scraper_graph = SmartScraperGraph(
-        prompt="summerize information into chinese, put it into summary",
-        source=source,
-        config=graph_config
-    )
-    result = smart_scraper_graph.run()
+    result = {'summary': None}
+    if enable_scrapper:
+
+        # Define the configuration for the scraping pipeline
+        graph_config = {
+            "llm": {
+                # TODO: remove before commit
+                "api_key": api_key,
+                "model": "gpt-3.5-turbo",
+            },
+            "verbose": True,
+            "headless": True,
+        }
+
+        smart_scraper_graph = SmartScraperGraph(
+            prompt="summerize information into chinese, put it into summary",
+            source=source,
+            config=graph_config
+        )
+        result = smart_scraper_graph.run()
+
     if "summary" not in result:
         logger.error("No summary found.")
+
     summary = result.get('summary')
+
     return {
         "url": source,
         "author": author,
@@ -272,10 +288,12 @@ def add_cardlike_content(msg: dict) -> dict:
     }
 
 
-def add_emoji_content(msg):
+def add_emoji_content(msg, enable_gpt_vision=False):
     '''return content with url and description'''
     url = msg['content']['src']
-    description = _get_img_description(url)
+    description = None
+    if enable_gpt_vision:
+        description = _get_img_description(url)
     return {'url': url, 'descrption': description}
 
 
@@ -327,9 +345,10 @@ def _get_audio_clip(video_path, output_dir=None, bitrate='32k', sample_rate=2205
     return audio_path
 
 
-def _get_video_summary(img_desc, audio_transcript):
-    client = OpenAI(
-        api_key='sk-proj-dgVgtDHPxP54DcNpiiklT3BlbkFJzKmdJVcN1nA2KYKErDYR')
+def _get_video_summary(img_desc,
+                       audio_transcript,
+                       api_key):
+    client = OpenAI(api_key=api_key)
     # TODO: create a config to adjust the model
     response = client.chat.completions.create(
         model='gpt-3.5-turbo',
@@ -350,7 +369,11 @@ def _get_video_summary(img_desc, audio_transcript):
     return summary
 
 
-def add_video_content(msg):
+def add_video_content(msg,
+                      wx_root,
+                      api_key,
+                      enable_cover_description=False,
+                      enable_video_description=False):
     '''return content with cover_img, video, summary
 
     upstream have issue getting the video path consistantly, sometime it will be 
@@ -380,15 +403,14 @@ def add_video_content(msg):
     else:
         cover_img = msg['content']['src']
 
-    # TODO config root directory from config
-    root = 'C:\\Users\\jianl\\Documents\\WeChat Files\\a38655162'
     img_desc, transcription = None, None
-    if cover_img:
-        img_desc = _get_img_description(os.path.join(root, cover_img))
-    if video:
-        audio_clip = _get_audio_clip(os.path.join(root, video))
+    if cover_img and enable_cover_description:
+        img_desc = _get_img_description(
+            os.path.join(wx_root, cover_img), api_key)
+    if video and enable_video_description:
+        audio_clip = _get_audio_clip(os.path.join(wx_root, video))
         transcription = _transcript(audio_clip)
-    description = _get_video_summary(img_desc, transcription)
+    description = _get_video_summary(img_desc, transcription, api_key)
     return {
         'cover_img': cover_img,
         'video': video,
@@ -425,7 +447,11 @@ def _extract_text(file_path):
     return text
 
 
-def add_file_content(msg):
+def add_file_content(msg,
+                     wx_root,
+                     api_key,
+                     word_limit=2000,
+                     enable_file_summary=False):
     '''Return content with file_path and summary.
 
     only text content been summariezed, chart, picture and other content
@@ -444,31 +470,26 @@ def add_file_content(msg):
         - summary (str): The summary of the file content.
     '''
     file_path = msg['content']['src']
-    # TODO: config from gloabl variable
-    root_dir = 'C:\\Users\\jianl\\Documents\\WeChat Files\\a38655162'
-    file_text = _extract_text(os.path.join(root_dir, file_path))
+    file_text = _extract_text(os.path.join(wx_root, file_path))
 
-    words = file_text.split()
-    clipped_text = " ".join(words[:2000])
-
-    file_name = os.path.basename(file_path)
-    # TODO: remove before 
-    client = OpenAI(
-        api_key='sk-proj-dgVgtDHPxP54DcNpiiklT3BlbkFJzKmdJVcN1nA2KYKErDYR')
-
-    response = client.chat.completions.create(
-        # TODO: change to config from a configuration file
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "summary the attachement from the provided file name and content just give me a general ideal what this is about"},
-            {"role": "user", "content": f"filename:{file_name} content:{clipped_text}"}
-        ]
-    )
-    summary = response.choices[0].message.content
-    return {
-        'file_path': file_path,
-        'summary': summary
-    }
+    if enable_file_summary:
+        words = file_text.split()
+        clipped_text = " ".join(words[:word_limit])
+        file_name = os.path.basename(file_path)
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            # TODO: change to config from a configuration file
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "summary the attachement from the provided file name and content just give me a general ideal what this is about"},
+                {"role": "user", "content": f"filename:{file_name} content:{clipped_text}"}
+            ]
+        )
+        summary = response.choices[0].message.content
+        return {
+            'file_path': file_path,
+            'summary': summary
+        }
 
 
 def add_location_content(msg):
@@ -480,6 +501,42 @@ def add_location_content(msg):
     return {'raw': raw}
 
 
-
-# card_msg = {'content':{'title': '《简单做事》不确定时代下，普通人的成事心法，樊登读书联合创始人郭俊杰作品（附下载）', 'src': 'http://mp.weixin.qq.com/s?__biz=MzIwODkwODg4OQ==&mid=2247484608&idx=1&sn=a1dc5821cf2db289ca82c5feae69390d&chksm=977aa3f6a00d2ae0c8a7aab4420f7821654629e893b3e113bce49fe55db5d3fa0e6a84b250f2&mpshare=1&scene=1&srcid=1206o87ISO9dRmXVxiik56oL&sharer_sharetime=1670298927807&sharer_shareid=2eeda1531e525961d16d149b4b2ff362#rd', 'des': '报告厅，有用的资料都在这。www.baogaoting.com', 'sourcedisplayname': ''}}
-# print(add_cardlike_content(card_msg))
+def get_content_by_type(msg,
+                        wx_root,
+                        save_to,
+                        vision_api_key,
+                        path_to_merge_db,
+                        open_ai_api_key):
+    type_name = msg['type_name']
+    if type_name == '文本':
+        return add_text_content(msg)
+    elif type_name == '图片':
+        return add_image_content(msg,
+                                 wx_root,
+                                 save_to,
+                                 api_key=vision_api_key,
+                                 enable_gpt_vision=False)
+    elif type_name == '带有引用的文本消息':
+        return add_quoted_msg_content(msg)
+    elif type_name == '文件':
+        return add_file_content(msg,
+                                wx_root,
+                                open_ai_api_key)
+    elif type_name == '动画表情':
+        return add_emoji_content(msg)
+    elif type_name == '语音':
+        return add_audio_content(msg,
+                                 path_to_merge_db,
+                                 save_to,
+                                 open_ai_api_key)
+    elif type_name == '卡片式链接':
+        return add_cardlike_content(msg,
+                                    open_ai_api_key
+                                    )
+    elif type_name == '视频':
+        return add_video_content(msg,
+                                 wx_root,
+                                 open_ai_api_key
+                                 )
+    else:
+        return msg['content']
