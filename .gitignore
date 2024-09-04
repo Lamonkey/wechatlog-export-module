@@ -357,5 +357,5 @@ dist-ssr
 *.local
 *.zip
 wxdump_tmp
-ui
+.conda
 wxdump_web
