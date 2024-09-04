@@ -6,11 +6,8 @@ from pywxdump.dbpreprocess.parsingMediaMSG import ParsingMediaMSG
 import os
 import logging
 import base64
-from openai import OpenAI
-from scrapegraphai.graphs import SmartScraperGraph
-from moviepy.editor import VideoFileClip
 import textract
-
+from openai import OpenAI
 logger = logging.getLogger(__name__)
 
 
@@ -113,26 +110,42 @@ def add_image_content(msg: dict,
     -------
     dict: with following keys
         - decrypted_img: relative path of saved imag
+        - decrypted_thumbnail
         - description: text description of the image
         - encrypted_img: absolute path to the encrypted image
+        - 
 
     '''
     if not os.path.isabs(save_to):
         raise ValueError("save_to must be an absolute path")
     # TODO: make sure not absolute path, \
     # becaues whole problem will break by just move to another folder
-    saved_path = utils.decrpyt_img_to(
-        msg['content']['src'],
-        wx_root,
-        save_to
-    )
+    saved_path, decrypt_thumbnail = None, None
+    try:
+        saved_path = utils.decrpyt_img_to(
+            msg['content']['src'],
+            wx_root,
+            save_to
+        )
+    except FileNotFoundError:
+        logging.error(f"{msg['MsgSvrID']} doesn't have compressed img")
+    try:
+        decrypt_thumbnail = utils.decrpyt_img_to(
+            msg['content']['thumbnail'],
+            wx_root,
+            save_to
+        )
+    except FileNotFoundError:
+        logging.error(f"{msg['MsgSvrID']} doesn't have thumbnail img")
     description = None
     if enable_gpt_vision:
         description = _get_img_description(saved_path, api_key)
     return {
         'encrypted_img': msg['content']['src'],
+        'decrypted_img': saved_path,
+        'encrypted_thumbnail': msg['content']['thumbnail'],
+        'decrypted_thumbnail': decrypt_thumbnail,
         'description': description,
-        'decrypted_img': saved_path
     }
 
 
@@ -255,7 +268,7 @@ def add_cardlike_content(msg: dict, api_key, enable_scrapper=False) -> dict:
 
     result = {'summary': None}
     if enable_scrapper:
-
+        from scrapegraphai.graphs import SmartScraperGraph
         # Define the configuration for the scraping pipeline
         graph_config = {
             "llm": {
@@ -408,6 +421,7 @@ def add_video_content(msg,
         img_desc = _get_img_description(
             os.path.join(wx_root, cover_img), api_key)
     if video and enable_video_description:
+        from moviepy.editor import VideoFileClip
         audio_clip = _get_audio_clip(os.path.join(wx_root, video))
         transcription = _transcript(audio_clip)
     description = _get_video_summary(img_desc, transcription, api_key)
@@ -471,7 +485,7 @@ def add_file_content(msg,
     '''
     file_path = msg['content']['src']
     file_text = _extract_text(os.path.join(wx_root, file_path))
-
+    summary = None
     if enable_file_summary:
         words = file_text.split()
         clipped_text = " ".join(words[:word_limit])
@@ -486,10 +500,10 @@ def add_file_content(msg,
             ]
         )
         summary = response.choices[0].message.content
-        return {
-            'file_path': file_path,
-            'summary': summary
-        }
+    return {
+        'file_path': file_path,
+        'summary': summary
+    }
 
 
 def add_location_content(msg):
