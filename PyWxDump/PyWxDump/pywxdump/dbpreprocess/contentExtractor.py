@@ -1,7 +1,10 @@
 import os
 import re
 from .utils import xml2dict, match_BytesExtra, timestamp2str
+import logging
+import xml.etree.ElementTree as ET
 
+logger = logging.getLogger(__name__)
 
 def clean_username(atuserlist):
     if not isinstance("".join(atuserlist), str):
@@ -40,13 +43,19 @@ def extract_image_content(DictExtra):
     DictExtra_str = str(DictExtra)
     img_paths = [i for i in re.findall(r"(FileStorage.*?)'", DictExtra_str)]
     img_paths = sorted(img_paths, key=lambda p: "Image" in p, reverse=True)
-    if img_paths:
-        img_path = img_paths[0].replace("'", "")
+    compress_img_path, thumbnail_path = None, None
+    for path in img_paths:
+        img_path = path.replace("'", "")
         img_path = [i for i in img_path.split("\\") if i]
         img_path = os.path.join(*img_path)
-        return {"src": img_path, "msg": "图片"}
-    else:
-        return {"src": "", "msg": "图片"}
+        if 'Thumb' in img_path:
+            thumbnail_path = img_path
+        else:
+            compress_img_path = img_path
+
+    return {"src": compress_img_path, "msg": "图片",
+            'compressed': compress_img_path,
+            'thumbnail': thumbnail_path}
 
 
 def extract_voice_content(StrContent,
@@ -166,6 +175,40 @@ def extract_other_type_content(DictExtra, type_name):
 
 def extract_call_content(DisplayContent):
     return {"src": "", "msg": f"语音/视频通话[{DisplayContent}]"}
+
+def extract_video_post(bytes_extra: dict, compress_content: str):
+    '''
+    get thumbnail from bytes extra, get author and desc from compress_content
+    '''
+    thumbnail = None
+    try:
+        byest_extra_str = str(bytes_extra)
+        pattern = r"b'([^']*FileStorage\\\\Cache\\\\[^']*)'"
+        matches = re.findall(pattern, byest_extra_str)
+        if matches:
+            thumbnail = matches[0]
+            thumbnail = thumbnail.replace('\\\\', '\\')
+
+    except (KeyError, AttributeError):
+        logger.error("Failed to extract thumbnail from bytes_extra")
+    
+    nickname, desc = None, None
+
+    # Parse the XML
+    root = ET.fromstring(compress_content)
+
+    # Find the finderFeed element
+    finder_feed = root.find(".//finderFeed")
+
+    if finder_feed is not None:
+        # Extract the nickname
+        if finder_feed.find("nickname").text is not None:
+            nickname = finder_feed.find("nickname").text.strip()
+        # Extract the desc
+        if finder_feed.find("desc").text is not None:
+            desc = finder_feed.find("desc").text.strip()
+    
+    return {'thumbnail': thumbnail, 'author': nickname, 'desc': desc}
 
 
 def get_talker(IsSender, StrTalker, bytes_extra, BytesExtra):

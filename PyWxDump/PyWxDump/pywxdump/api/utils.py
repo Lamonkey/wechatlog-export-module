@@ -135,11 +135,10 @@ def gen_base64(path):
     base64_encoded_js = base64.b64encode(js_code).decode('utf-8')
     return start_str + base64_encoded_js
 
-
 def merge_folders(source, destination):
     """
     Merge contents of source folder into destination folder without overriding existing files or directories.
-
+    raise FileNotFoundError when source or destination doesn't exist
     :param source: Source folder path (folder 'a')
     :param destination: Destination folder path (folder 'b')
     """
@@ -147,7 +146,7 @@ def merge_folders(source, destination):
         raise FileNotFoundError(f"Source folder {source} does not exist.")
 
     if not os.path.exists(destination):
-        os.makedirs(destination)
+        raise FileNotFoundError(f"Destination folder {destination} does not exist.")
 
     for root, dirs, files in os.walk(source):
         # Compute the relative path from the source folder

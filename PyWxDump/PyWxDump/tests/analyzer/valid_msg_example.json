@@ -1,0 +1,54 @@
+{
+
+    "text": {
+        "MsgSvrID": "9002765800573563123",
+        "type_name": "\u6587\u672c",
+        "is_sender": 1,
+        "talker": "\u6211",
+        "room_name": "26582513605@chatroom",
+        "content": {
+            "src": "",
+            "msg": "\u6d4b\u8bd5"
+        },
+        "CreateTime": "2024-05-23 12:04:08",
+        "id": 1,
+        "description": "a text message says \"\u6d4b\u8bd5\"",
+        "mentioned_user": []
+    },
+
+    "audio": {
+        "MsgSvrID": "2149179895562747041",
+        "type_name": "语音",
+        "is_sender": 0,
+        "talker": "qunaer001",
+        "room_name": "qunaer001",
+        "content": {
+            "src": "audio\\qunaer001\\2024-06-10_18-46-31_0_2149179895562747041.wav",
+            "msg": "语音时长：\\37.39秒\n        翻译结果：this is a transcription",
+            "duration": "37.39",
+            "transcription": "this is a transcription"
+        },
+        "CreateTime": "2024-06-10 18:46:31",
+        "id": 1937,
+        "description": "a 37.39 seconds audio with transcription: 'this is an transcription '",
+        "mentioned_user": []
+    },
+
+    "img_entry": {
+        "MsgSvrID": "7937950990010314980",
+        "type_name": "图片",
+        "is_sender": 1,
+        "talker": "我",
+        "room_name": "qunaer001",
+        "content": {
+            "src": "C:\\Users\\jianl\\Documents\\WeChat Files\\a38655162\\FileStorage\\MsgAttach\\2aa1b71298b56ced33f13da24648a23b\\Image\\2024-07\\91d5e52783be48aec0f17b1b09a015c6.dat",
+            "msg": "图片"
+        },
+        "CreateTime": "2024-05-08 13:19:46",
+        "id": 1890,
+        "description": "an image",
+        "mentioned_user": []
+    }
+
+
+}

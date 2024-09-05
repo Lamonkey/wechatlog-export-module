@@ -1,3 +1,4 @@
+# TODO: this class can be removed
 import os
 import shutil
 import unittest
@@ -8,17 +9,19 @@ from pywxdump.dbpreprocess.parsingMSG import ParsingMSG as parsor
 
 
 class TestUtils(unittest.TestCase):
-    merge_db_path = "c:\\Users\\jianl\\Downloads\\pywxdumpv3027\\wxdump_tmp\\a38655162\\merge_all.db"
     wx_root = 'C:\\Users\\jianl\\Documents\\WeChat Files\\a38655162'
     save_to = 'C:\\Users\\jianl\\Downloads\\pywxdumpv3027\\wxdump_tmp\\a38655162'
     path_to_merge_db = 'c:\\Users\\jianl\\Downloads\\pywxdumpv3027\\wxdump_tmp\\a38655162\\merge_all.db'
+    vision_api_key = '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'
+    open_ai_api_key = 'sk-proj-dgVgtDHPxP54DcNpiiklT3BlbkFJzKmdJVcN1nA2KYKErDYR'
+  
     # TODO add token for gpt here
     def setUp(self):
-        self.db_parser = parsor(self.merge_db_path)
+        self.db_parser = parsor(self.path_to_merge_db)
 
-    def tearDown(self):
-        self.db_parser.empty_WL_MSG()
-    #     pass
+    # def tearDown(self):
+    #     self.db_parser.empty_WL_MSG()
+        
         
     def test_export_msg_to_wl(self):
         '''
@@ -51,6 +54,7 @@ class TestUtils(unittest.TestCase):
                 "INSERT INTO WL_MSG (MsgSvrID, type_name, is_sender, talker, room_name, description ,content, whom, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
             whom = msg['mentioned_user']
+            content_str = None
             try:
                 content = cg.get_content_by_type(msg,
                                                  self.wx_root,
@@ -59,15 +63,18 @@ class TestUtils(unittest.TestCase):
                                                  self.path_to_merge_db,
                                                  self.open_ai_api_key)
                 content_str = str(content)
-                # append room_name if not a chatroom
-                if 'chatroom' not in msg['room_name']:
-                    whom.append(msg['room_name'])
-                # append reply_to if is quote_msg
-                if msg['type_name'] == '带有引用的文本消息':
-                    whom.append(msg['content']['reply_to_name'])          
             except Exception as e:
-                print(f"skiped{msg['MsgSvrID']} due to {e}")
-                continue
+                print(f"{msg['MsgSvrID']} encountered issue: {e}")
+                
+
+            # append room_name if not a chatroom
+            if 'chatroom' not in msg['room_name']:
+                whom.append(msg['room_name'])
+
+            # append reply_to if is quote_msg
+            if msg['type_name'] == '带有引用的文本消息':
+                whom.append(msg['content']['reply_to_name'])          
+                
             params = (msg["MsgSvrID"],
                       msg["type_name"],
                       msg["is_sender"],

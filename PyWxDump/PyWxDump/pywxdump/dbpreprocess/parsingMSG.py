@@ -268,6 +268,12 @@ class ParsingMSG(DatabaseBase):
                 content[k] = v
             description = dg.contact_card(content)
 
+        # video post
+        elif type_id[0] == 49 and type_id[1] == 51:
+            DictExtra = self.get_BytesExtra(BytesExtra)
+            compress_content = self.decompress_CompressContent(CompressContent)
+            content = extractor.extract_video_post(DictExtra, compress_content)
+            type_name = '视频号视频'
         elif type_id[0] == 49 and type_id[1] != 0:
             DictExtra = self.get_BytesExtra(BytesExtra)
             content = extractor.extract_other_type_content(
@@ -291,6 +297,7 @@ class ParsingMSG(DatabaseBase):
         mentioned_user = extractor.extract_mentioned_user(
             self.get_BytesExtra(BytesExtra)
             )
+
         row_data = {"MsgSvrID": str(MsgSvrID),
                     "type_name": type_name,
                     "is_sender": IsSender,
