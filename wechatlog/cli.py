@@ -3,6 +3,7 @@ import textwrap
 import argparse
 from pywxdump.analyzer import contentGeneration as cg
 from pywxdump.dbpreprocess.parsingMSG import ParsingMSG as parsor
+from patches import contact_patch
 
 def print_ascii_art():
     art = r"""
@@ -22,23 +23,6 @@ def setup_parser():
     parser.add_argument('--vision_api_key', required=False, help='API key for vision processing (optional).')
     parser.add_argument('--open_ai_api_key', required=False, help='API key for OpenAI (optional).')
     return parser
-
-def contact_patch(db_parser):
-    sql = '''
-    INSERT INTO contact (
-    Remark,
-    NickName,
-    UserName,
-    Alias
-    )
-    VALUES (
-        '微信系统',  -- Remark
-        '微信系统',  -- NickName
-        'wxsystem', -- UserName
-        'wxsystem'  -- Alias
-    );
-    '''
-    db_parser.execute_sql(sql=sql)
 
 def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, vision_api_key, open_ai_api_key):
     '''
