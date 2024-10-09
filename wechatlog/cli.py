@@ -3,6 +3,7 @@ import textwrap
 import argparse
 from pywxdump.analyzer import contentGeneration as cg
 from pywxdump.dbpreprocess.parsingMSG import ParsingMSG as parsor
+from patches import contact_patch
 
 def print_ascii_art():
     art = r"""
@@ -82,6 +83,7 @@ def main():
     
     # Process messages with the correct path to the merged database
     export_msg_to_wl(db_parser, args.wx_root, args.save_to, args.path_to_merge_db, args.vision_api_key, args.open_ai_api_key)
+    contact_patch(db_parser)
     print("WeChat log processing completed.")
 
 if __name__ == "__main__":
