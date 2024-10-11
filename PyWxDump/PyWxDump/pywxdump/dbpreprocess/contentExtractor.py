@@ -121,16 +121,72 @@ def extract_forwarded_message_content(CompressContent):
             'title': title,
             'des': des}
 
-
 def extract_quoted_message_content(CompressContent):
     content_tmp = xml2dict(CompressContent)
-    print(f'\ncontentExtractor, content_tmp: {content_tmp}')
+    # print(f'\ncontentExtractor, content_tmp: {content_tmp}')
     appmsg = content_tmp.get("appmsg", {})
     title = appmsg.get("title", "")
     refermsg = appmsg.get("refermsg", {})
     refer_id = int(refermsg.get('svrid', -1))
-    displayname = refermsg.get("chatusr", "") #before it was displayname
-    print(f'contentExtractor displayname: {displayname}')
+    displayname = refermsg.get("displayname", "") #before it was displayname. chatusr
+
+    # print(f'type for displayname is {type(displayname)}')
+    # print(f'contentExtractor displayname: {displayname}')
+    chatusr = refermsg.get('chatusr', "")
+    fromusr = refermsg.get('fromusr', "")
+    print(f'type for chatusr is {type(chatusr)}')
+    op_content = refermsg.get("content", "")
+    if isinstance(chatusr, dict):
+        print(f'\n\nwriting to chatusr.txt')
+        
+        with open("chatusr.txt", "a", encoding="utf-8") as file:
+    # Write the text string to the file
+            file.write(f"{refer_id}\n")
+            file.write(displayname)
+            file.write(f"\nfromusr: {fromusr}\n")
+            file.write(f"chatusr: {chatusr}\n")
+            file.write(f"title: {title}\n")
+            file.write(f"refer_message: {op_content}\n")
+            # json.dump(appmsg, file, indent=4) #data, txt_file, indent=4
+    else:
+        with open("chatusr2.txt", 'a', encoding="utf-8") as file:
+            if '@chatroom' in fromusr:
+                file.write('CHATROOM in FROMUSR')
+            else:
+                if fromusr == chatusr:
+                    file.write('CHATUSR == FROMUSR')
+                else:
+                    file.write('WXID in FROMUSR')
+            file.write(f"{refer_id} \n")
+            file.write(displayname)
+            file.write(f"\nfromusr: {fromusr}\n")
+            file.write(f"chatusr: {chatusr}\n")
+            file.write(f"title: {title}\n")
+            file.write(f"refer_message: {op_content}\n")
+            # json.dump(appmsg, file, indent=4)
+    # print(f'contentExtractor chatusr: {chatusr}')
+
+    # pseudo code
+    # if chatusr is a dict:
+        # displayname = fromusr
+    # else:
+        # if fromusr contains "@chatroom":
+            # displayname = chatusr
+        # else:
+            # displayname = fromusr
+
+    # total quoted_message 497 = 155 + 342 
+    # chatusrs that are {}: 155
+        # fromusr is wx_id of op
+    # chatusrs that are not {}: 342 = 279 + 47 + 16 
+        # fromusr contains @chatroom: 279
+            # chatusr is wx_id of op
+        # chatusr == fromusr: 47
+            # both are wx_id of op 
+        # chatusr =/= fromusr: 16 
+            # wx_id depends, displayname is always op 
+     
+
     display_content = refermsg.get("content", "")
     display_createtime = refermsg.get("createtime", "")
     display_createtime = timestamp2str(

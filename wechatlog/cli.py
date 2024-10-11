@@ -72,14 +72,17 @@ def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, vision_api_k
             # print(f"msg[content] is: {msg['content']}")
             # print(f'msg is: {msg}')
             whom.append(msg['content']['reply_to_name']) #reply_to_name is nickname
-            print(f'whom is: {whom}')
-            print(f"Processing {msg['MsgSvrID']}")
-            print()
+            # print(f'whom is: {whom}')
+            # print(f"Processing {msg['MsgSvrID']}")
+            # print()
             
             
         params = (msg["MsgSvrID"], msg["type_name"], msg["is_sender"], msg["talker"], msg["room_name"],
                   msg['description'], content_str, " ".join(whom), msg["CreateTime"])
         db_parser.execute_sql(sql, params)
+
+        # if msg["MsgSvrID"] == '7461214856830865049':
+        #     break
 
 def main():
     print_ascii_art()
