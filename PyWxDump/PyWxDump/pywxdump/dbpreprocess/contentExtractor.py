@@ -124,11 +124,13 @@ def extract_forwarded_message_content(CompressContent):
 
 def extract_quoted_message_content(CompressContent):
     content_tmp = xml2dict(CompressContent)
+    print(f'\ncontentExtractor, content_tmp: {content_tmp}')
     appmsg = content_tmp.get("appmsg", {})
     title = appmsg.get("title", "")
     refermsg = appmsg.get("refermsg", {})
     refer_id = int(refermsg.get('svrid', -1))
-    displayname = refermsg.get("displayname", "")
+    displayname = refermsg.get("chatusr", "") #before it was displayname
+    print(f'contentExtractor displayname: {displayname}')
     display_content = refermsg.get("content", "")
     display_createtime = refermsg.get("createtime", "")
     display_createtime = timestamp2str(

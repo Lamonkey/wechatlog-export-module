@@ -303,11 +303,15 @@ class ParsingMSG(DatabaseBase):
                     "is_sender": IsSender,
                     "talker": talker,
                     "room_name": StrTalker,
-                    "content": content,
+                    "content": content, # doesnt contain key 'reply_to_name'
                     "CreateTime": CreateTime,
                     "id": id,
                     "description": description,
                     'mentioned_user': mentioned_user}
+        print(f'MSG_detail MsgSvrID: {MsgSvrID}')
+        # print(f'MSG_detail mentioned_user: {mentioned_user}')
+        # print(f'MSG_detail content["reply_to_name"]: {content["reply_to_name"]}')
+        # print(f'MSG_detail content: {content}\n')
         return row_data
 
     def get_all_msgs(self):
