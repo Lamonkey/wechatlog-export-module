@@ -238,7 +238,7 @@ class ParsingMSG(DatabaseBase):
         elif type_id == (49, 57):  # 带有引用的文本消息
             CompressContent = self.decompress_CompressContent(CompressContent)
             content = extractor.extract_quoted_message_content(CompressContent)
-            print(f'\nMSG_detail content["reply_to_name"]: {content["reply_to_name"]}\n')
+
             # get referce id
             ref_id = content.get('refer_id', -1)
             # get referece entity of msg
@@ -304,14 +304,12 @@ class ParsingMSG(DatabaseBase):
                     "is_sender": IsSender,
                     "talker": talker,
                     "room_name": StrTalker,
-                    "content": content, # only quoted_message content contains key 'reply_to_name'
+                    "content": content,
                     "CreateTime": CreateTime,
                     "id": id,
                     "description": description,
                     'mentioned_user': mentioned_user}
-        # print(f'MSG_detail MsgSvrID: {MsgSvrID}')
-        # print(f'MSG_detail mentioned_user: {mentioned_user}')
-        # print(f'MSG_detail content: {content}\n')
+
         return row_data
 
     def get_all_msgs(self):
