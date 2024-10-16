@@ -238,6 +238,7 @@ class ParsingMSG(DatabaseBase):
         elif type_id == (49, 57):  # 带有引用的文本消息
             CompressContent = self.decompress_CompressContent(CompressContent)
             content = extractor.extract_quoted_message_content(CompressContent)
+
             # get referce id
             ref_id = content.get('refer_id', -1)
             # get referece entity of msg
@@ -308,6 +309,7 @@ class ParsingMSG(DatabaseBase):
                     "id": id,
                     "description": description,
                     'mentioned_user': mentioned_user}
+
         return row_data
 
     def get_all_msgs(self):

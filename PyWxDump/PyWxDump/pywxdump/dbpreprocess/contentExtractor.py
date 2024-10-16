@@ -121,7 +121,6 @@ def extract_forwarded_message_content(CompressContent):
             'title': title,
             'des': des}
 
-
 def extract_quoted_message_content(CompressContent):
     content_tmp = xml2dict(CompressContent)
     appmsg = content_tmp.get("appmsg", {})
