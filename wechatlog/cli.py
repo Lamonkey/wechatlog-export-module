@@ -66,7 +66,7 @@ def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, vision_api_k
 
         # Append reply_to if is quote_msg
         if msg['type_name'] == '带有引用的文本消息':
-            op_wxid = retrieve_op_wxid(db_parser, content['op_id']) # has this format [('wxid_7w175a1xeilw11',)] if not NONE
+            op_wxid = retrieve_op_wxid(db_parser, content['op_id']) # op_wxid has this format [('wxid_7w175a1xeilw11',)]
             if not op_wxid:
                 whom=['unknown']
             else:
@@ -74,7 +74,7 @@ def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, vision_api_k
         print(f"Processing {msg['MsgSvrID']}")
             
         params = (msg["MsgSvrID"], msg["type_name"], msg["is_sender"], msg["talker"], msg["room_name"],
-                  msg['description'], content_str, " ".join(whom), msg["CreateTime"]) # " ".join(whom)
+                  msg['description'], content_str, " ".join(whom), msg["CreateTime"])
         db_parser.execute_sql(sql, params)
 
 def main():
