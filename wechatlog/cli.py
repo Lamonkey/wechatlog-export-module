@@ -3,7 +3,7 @@ import textwrap
 import argparse
 from pywxdump.analyzer import contentGeneration as cg
 from pywxdump.dbpreprocess.parsingMSG import ParsingMSG as parsor
-from patches import contact_patch
+from patches import contact_patch, retrieve_op_wxid
 
 def print_ascii_art():
     art = r"""
@@ -49,11 +49,10 @@ def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, vision_api_k
         
     msgs = db_parser.get_all_msgs()
     for msg in msgs:
-        # print(f"Processing {msg['MsgSvrID']}") UNCOMMENT LATER
         sql = (
             "INSERT INTO WL_MSG (MsgSvrID, type_name, is_sender, talker, room_name, description ,content, whom, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
         )
-        whom = msg.get('mentioned_user', []) #mentioned_user is wxid, used get method here as the safe approach in case the key doesnt exist
+        whom = msg.get('mentioned_user', '') #mentioned_user is wxid, used get method here as the safe approach in case the key doesnt exist
         content_str = None
         try:
             content = cg.get_content_by_type(msg, wx_root, save_to, vision_api_key, path_to_merge_db, open_ai_api_key)
@@ -67,22 +66,16 @@ def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, vision_api_k
 
         # Append reply_to if is quote_msg
         if msg['type_name'] == '带有引用的文本消息':
-            # print(f'mentioned_user is: {whom}')
-            # print(f"reply_to_name is: {msg['content']['reply_to_name']}")
-            # print(f"msg[content] is: {msg['content']}")
-            # print(f'msg is: {msg}')
-            whom.append(msg['content']['reply_to_name']) #reply_to_name is nickname
-            # print(f'whom is: {whom}')
-            # print(f"Processing {msg['MsgSvrID']}")
-            # print()
-            
+            op_wxid = retrieve_op_wxid(db_parser, content['op_id']) # has this format [('wxid_7w175a1xeilw11',)] if not NONE
+            if not op_wxid:
+                whom=['unknown']
+            else:
+                whom=[op_wxid[0][0]]
+        print(f"Processing {msg['MsgSvrID']}")
             
         params = (msg["MsgSvrID"], msg["type_name"], msg["is_sender"], msg["talker"], msg["room_name"],
-                  msg['description'], content_str, " ".join(whom), msg["CreateTime"])
+                  msg['description'], content_str, " ".join(whom), msg["CreateTime"]) # " ".join(whom)
         db_parser.execute_sql(sql, params)
-
-        # if msg["MsgSvrID"] == '7461214856830865049':
-        #     break
 
 def main():
     print_ascii_art()
