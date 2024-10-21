@@ -27,10 +27,4 @@ if __name__ == "__main__":
         print(f'decrypt finished save_path: {save_path}')
     else:
         print(f'decrypt failed')
-    # need to test and figure out following error
-    # TODO: test if output_path not exist
-    # TODO: test if output_path is not empty
-    # TODO: test if wx_path is not exist
-    # TODO: test if db in wx_path is not exist
-    # TODO: test if key is wrong
 
