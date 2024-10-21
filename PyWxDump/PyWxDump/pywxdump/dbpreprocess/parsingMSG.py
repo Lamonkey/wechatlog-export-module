@@ -23,6 +23,23 @@ class ParsingMSG(DatabaseBase):
 
     def __init__(self, db_path):
         super().__init__(db_path)
+        self._textualized_content_column_exists = None
+
+    def ensure_textualized_content_column(self):
+        """
+        Ensure the textualized_content column exists in the WL_MSG table.
+        This method should be called once before performing any updates.
+        """
+        if self._textualized_content_column_exists is None:
+            check_column_sql = "PRAGMA table_info(WL_MSG)"
+            columns = self.execute_sql(check_column_sql)
+            column_names = [col[1] for col in columns]
+            self._textualized_content_column_exists = 'textualized_content' in column_names
+
+        if not self._textualized_content_column_exists:
+            add_column_sql = "ALTER TABLE WL_MSG ADD COLUMN textualized_content TEXT"
+            self.execute_sql(add_column_sql)
+            self._textualized_content_column_exists = True
 
     def decompress_CompressContent(self, data):
         """
@@ -325,6 +342,35 @@ class ParsingMSG(DatabaseBase):
         for row in rows:
             yield self.msg_detail(row)
 
+    def get_all_msgs_from_wl_msg(self):
+        '''
+        Return iterator of messages from the WL_MSG table with the specified schema.
+
+        The schema includes:
+        [MsgSvrID INTEGER PRIMARY KEY, type_name TEXT, is_sender INTEGER, talker TEXT, 
+        room_name TEXT, description TEXT, content TEXT, whom TEXT, CreateTime INT, gmail TEXT]
+        '''
+        sql = """
+            SELECT MsgSvrID, type_name, is_sender, talker, room_name, description, 
+                   content, whom, CreateTime, gmail
+            FROM WL_MSG
+            ORDER BY CreateTime ASC
+        """
+        rows = self.execute_sql(sql)
+        for row in rows:
+            yield {
+                'MsgSvrID': row[0],
+                'type_name': row[1],
+                'is_sender': row[2],
+                'talker': row[3],
+                'room_name': row[4],
+                'description': row[5],
+                'content': row[6],
+                'whom': row[7],
+                'CreateTime': row[8],
+                'gmail': row[9]
+            }
+
     def is_table_exist(self, table_name):
         sql = (
             "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
@@ -521,5 +567,15 @@ class ParsingMSG(DatabaseBase):
         result = self.execute_sql(sql, params)
 
         return result
- 
+
+    def update_msg_textualized_content(self, msg_svrID, textualized_content):
+        """
+        Update the textualized_content column of the WL_MSG table.
+        """
+        # Ensure the column exists before updating
+        self.ensure_textualized_content_column()
+
+        # Update the textualized_content
+        update_sql = "UPDATE WL_MSG SET textualized_content = ? WHERE MsgSvrID = ?"
+        self.execute_sql(update_sql, (textualized_content, msg_svrID))
 
