@@ -317,17 +317,32 @@ class Textualization:
             return None
     
     def textualize(self, msg):
-        # if type is img
-        # run textualize_img
-        # if type is audio
-        # run textualize_audio
-        # if type is file
-        # run textualize_file
-        # if type is video
-        # run textualize_video
-        # if type is cardlike
-        # run textualize_cardlike
-        pass
+        if msg['content'] is None:
+            return None
+
+        content = eval(msg['content'])
+        textualized_content = None
+
+        if msg['type_name'] == '图片':
+            img_path = content.get('decrypted_img') or content.get('decrypted_thumbnail')
+            if img_path and os.path.exists(img_path):
+                textualized_content = self.textualize_img(img_path)
+        elif msg['type_name'] == '语音':
+            textualized_content = self.textualize_audio(content['audio_path'])
+        elif msg['type_name'] == '视频':
+            textualized_content = self.textualize_video(content.get('thumb_path'), content['video_path'])
+        elif msg['type_name'] == '文件':
+            textualized_content = self.textualize_file(content['file_path'])
+        elif msg['type_name'] == '卡片式链接':
+            textualized_content = self.textualize_cardlike(
+                url=content.get('url'),
+                content_author=content.get('author'),
+                source=content.get('source'),
+                displayed_title=content.get('title'),
+                displayed_description=content.get('description')
+            )
+
+        return textualized_content
         
 
 
