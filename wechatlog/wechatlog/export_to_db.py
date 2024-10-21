@@ -1,9 +1,6 @@
 import textwrap
 from pywxdump.dbpreprocess.parsingMSG import ParsingMSG
 from pywxdump.analyzer import contentGeneration as cg
-# TODO: remove the hard coded path to DB, move this to a config file or environment varaible
-db_instance = ParsingMSG(
-    "c:\\Users\\jianl\\Downloads\\pywxdumpv3027\\wxdump_tmp\\a38655162\\merge_all.db")
 
 
 def extract_interaction(msg):

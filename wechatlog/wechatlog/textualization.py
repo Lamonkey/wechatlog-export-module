@@ -327,6 +327,7 @@ class Textualization:
         # run textualize_video
         # if type is cardlike
         # run textualize_cardlike
+        pass
         
 
 
@@ -337,64 +338,65 @@ if __name__ == "__main__":
     # Initialize Textualization
     textualization = Textualization(api_key)
 
-    # # Test with a local image
-    # local_image_path = 'c:/Users/88the/OneDrive/Desktop/wechatlog-export-module/testing_sources/image1.jpg'
-    # result = textualization.textualize_img(local_image_path)
-    # print(f"Local image description: {result}")
+    # Test with a local image
+    local_image_path = 'c:/Users/harry/Downloads/wxdump_tmp/wxid_fsy5oyqm39p312/img/FileStorage/MsgAttach/2e814e41d6151bc9c60d3aafeb3a182a/Image/2024-09/d0be449312de0dd275b32e0e65c2d360.dat_a8a3955dd1e3506393fac8ef3d6645c8..jpg'
+    result = textualization.textualize_img(local_image_path)
+    print(f"Local image description: {result}")
 
-    # # Test audio transcription
-    # audio_path = 'c:/Users/88the/OneDrive/Desktop/wechatlog-export-module/testing_sources/audio.wav'
-    # transcription = textualization.textualize_audio(audio_path)
-    # print(f"Audio transcription: {transcription}")
+    # Test audio transcription
+    audio_path = 'c:/Users/harry/Downloads/wxdump_tmp/wxid_fsy5oyqm39p312/audio/1757076404@chatroom/2023-08-14_22-50-10_0_2310805469276806530.wav'
+    transcription = textualization.textualize_audio(audio_path)
+    print(f"Audio transcription: {transcription}")
 
-    # # Test textualize_cardlike
-    # url = "http://mp.weixin.qq.com/s?__biz=Mzg4ODgwODA1NA==&mid=2247486309&idx=1&sn=c5d04e06bd4a6dad2218520b0deec7ca&chksm=cff43c7cf883b56a9259160725ec77ddaed269b990bf0e978f74e3db7b745fcf86ba04c63d0c&mpshare=1&scene=1&srcid=0529qlfZEAeOebw5JqLC20BY&sharer_shareinfo=b5d35b57dd7b67647c1370fc8b1fdae7&sharer_shareinfo_first=b5d35b57dd7b67647c1370fc8b1fdae7#rd"
-    # author = "刘敏谈养老"
-    # displayed_title = "泰和养老旗下房山良乡养老社区——泰和·睿园"
-    # displayed_description = "点击上方蓝字关注我们 世之长者，宜居桃园福地，以安享康泰华年。距离北京市区20公里的房山良乡泰和·睿园便是这"
+    # Test textualize_cardlike
+    url = "http://mp.weixin.qq.com/s?__biz=Mzg4ODgwODA1NA==&mid=2247486309&idx=1&sn=c5d04e06bd4a6dad2218520b0deec7ca&chksm=cff43c7cf883b56a9259160725ec77ddaed269b990bf0e978f74e3db7b745fcf86ba04c63d0c&mpshare=1&scene=1&srcid=0529qlfZEAeOebw5JqLC20BY&sharer_shareinfo=b5d35b57dd7b67647c1370fc8b1fdae7&sharer_shareinfo_first=b5d35b57dd7b67647c1370fc8b1fdae7#rd"
+    author = "刘敏谈养老"
+    displayed_title = "泰和养老旗下房山良乡养老社区——泰和·睿园"
+    displayed_description = "点击上方蓝字关注我们 世之长者，宜居桃园福地，以安享康泰华年。距离北京市区20公里的房山良乡泰和·睿园便是这"
 
-    # card_summary = textualization.textualize_cardlike(
-    #     url=url,
-    #     content_author=author,
-    #     displayed_title=displayed_title,
-    #     displayed_description=displayed_description
-    # )
-    # print(f"Card-like link summary: {card_summary}")
+    card_summary = textualization.textualize_cardlike(
+        url=url,
+        content_author=author,
+        displayed_title=displayed_title,
+        displayed_description=displayed_description
+    )
+    print(f"Card-like link summary: {card_summary}")
 
-    # # Assuming 'textualization' is an instance of the Textualization class
-    # video_content = {
-    #     'cover_img': None,
-    #     'video': 'C:/Users/88the/OneDrive/Documents/WeChat Files/a38655162/FileStorage/Video/2024-05/e63fd6f79e117870b37ec9792b1bc0f9.mp4',
-    #     'summary': 'In this video, we will explore various techniques and strategies for improving time management skills and increasing productivity in daily life and work. Expert tips and practical advice will be shared to help viewers effectively manage their time and achieve their goals.'
-    # }
+    # Assuming 'textualization' is an instance of the Textualization class
+    video_content = {
+        'cover_img': None,
+        'video': 'c:/Users/harry/Downloads/wxdump_tmp/wxid_fsy5oyqm39p312/video/FileStorage/Video/2024-05/9245dc35ef7958d1fb63249c24cd5db9.mp4',
+        'summary': 'In this video, we will explore various techniques and strategies for improving time management skills and increasing productivity in daily life and work. Expert tips and practical advice will be shared to help viewers effectively manage their time and achieve their goals.'
+    }
 
-    # result = textualization.textualize_video(
-    #     cover_img_path=video_content['cover_img'],
-    #     video_path=video_content['video']
-    # )
+    result = textualization.textualize_video(
+        cover_img_path=video_content['cover_img'],
+        video_path=video_content['video']
+    )
 
-    # print(f"Video summary: {result}")
+    print(f"Video summary: {result}")
 
-    # # New test with different video content
-    # video_content_2 = {
-    #     'cover_img': 'C:/Users/88the/OneDrive/Documents/WeChat Files/a38655162/FileStorage/Video/2024-08/2d369ce879de1db4b16d8912af821c08.jpg',
-    #     'video': None,
-    #     'summary': 'In this video, we will learn about the benefits of yoga and how it can improve our physical and mental health.'
-    # }
+    # New test with different video content
+    video_content_2 = {
+        'cover_img': 'c:/Users/harry/Downloads/wxdump_tmp/wxid_fsy5oyqm39p312/video/FileStorage/Video/2024-06/381ebf7076d3a3b65c6d04262c8d8d57.jpg',
+        'video': None,
+        'summary': 'In this video, we will learn about the benefits of yoga and how it can improve our physical and mental health.'
+    }
 
-    # result_2 = textualization.textualize_video(
-    #     cover_img_path=video_content_2['cover_img'],
-    #     video_path=video_content_2['video']
-    # )
+    result_2 = textualization.textualize_video(
+        cover_img_path=video_content_2['cover_img'],
+        video_path=video_content_2['video']
+    )
 
-    # print(f"Video summary 2: {result_2}")
+    print(f"Video summary 2: {result_2}")
 
     # # Test textualize_file pptx
     # file_path = 'c:/Users/88the/OneDrive/Documents/WeChat Files/a38655162/FileStorage/File/2024-07/who is Jesus.pptx'
+    # # FileStorage\\File\\2024-03\\衰老.ppt
     # summary = textualization.textualize_file(file_path)
     # print(f"File summary: {summary}")
 
-    # # Test textualize_file with the specified PDF
-    # file_path = r'c:\Users\88the\OneDrive\Documents\WeChat Files\a38655162\FileStorage\File\2024-05\factor_return.pdf'
-    # summary = textualization.textualize_file(file_path)
-    # print(f"PDF summary: {summary}")
+    # Test textualize_file with the specified PDF
+    file_path = r'c:\Users\harry\Documents\WeChat Files\wxid_fsy5oyqm39p312\FileStorage\File\2024-05\H1B抽中之后流程 （2023年3月更新） - H1b Legal(1).pdf'
+    summary = textualization.textualize_file(file_path)
+    print(f"PDF summary: {summary}")
