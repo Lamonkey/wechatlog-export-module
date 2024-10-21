@@ -13,7 +13,7 @@ import winreg
 import psutil
 import pymem
 from typing import List, Union
-from .utils import pattern_scan_all, verify_key, get_exe_version, get_exe_bit
+from pywxdump.wx_info.utils import pattern_scan_all, verify_key, get_exe_version, get_exe_bit
 
 ReadProcessMemory = ctypes.windll.kernel32.ReadProcessMemory
 void_p = ctypes.c_void_p
