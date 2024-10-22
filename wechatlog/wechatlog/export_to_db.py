@@ -1,16 +1,23 @@
-import os
 import textwrap
-import argparse
 from pywxdump.analyzer import contentGeneration as cg
 from pywxdump.dbpreprocess.parsingMSG import ParsingMSG as parsor
-from patches import contact_patch, retrieve_op_wxid
+import patches
+from tqdm import tqdm
 
 
-def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, vision_api_key, open_ai_api_key):
-    '''
-    Export all messages to a WL_MSG table with a specific schema
-    '''
-    # Create table if it does not exist
+def execute_sql_safely(db_parser, sql, params=None):
+    sql = "INSERT OR REPLACE INTO WL_MSG VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    try:
+        db_parser.execute_sql(sql, params)
+    except Exception as e:
+        print(f"Error executing SQL: {e}")
+        print(f"SQL: {sql}")
+        print(f"Params: {params}")
+        # Optionally, you can re-raise the exception if you want to halt execution
+        # raise
+
+
+def create_wl_msg_table_if_not_exists(db_parser):
     sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='WL_MSG'"
     result = db_parser.execute_sql(sql=sql)
     if not result:
@@ -29,41 +36,98 @@ def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, vision_api_k
         """)
         db_parser.execute_sql(sql=sql)
 
+
+def save_msg_to_db(db_parser, msg):
+    sql = "INSERT OR REPLACE INTO WL_MSG VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    params = (
+        msg["MsgSvrID"],
+        msg["type_name"],
+        msg["is_sender"],
+        msg["talker"],
+        msg["room_name"],
+        msg['description'],
+        msg['content_str'],
+        msg['whom'],
+        msg["CreateTime"]
+    )
+    execute_sql_safely(db_parser, sql, params)
+
+
+def get_whom(msg, db_parser, content):
+    whom = msg.get('mentioned_user', [])
+
+    # Append room_name if not a chatroom
+    if 'chatroom' not in msg['room_name']:
+        whom.append(msg['room_name'])
+
+    # Append reply_to if is quote_msg
+    if msg['type_name'] == '带有引用的文本消息':
+        # op_wxid has this format [('wxid_7w175a1xeilw11',)]
+        op_wxid = patches.retrieve_op_wxid(db_parser, content['op_id'])
+        if not op_wxid:
+            whom.append('unknown')
+        else:
+            whom.append(op_wxid[0][0])
+
+    return whom
+
+
+def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, progress_callback=None):
+    '''
+    Export all messages to a WL_MSG table with a specific schema
+    '''
     msgs = db_parser.get_all_msgs()
+    
     for msg in msgs:
-        sql = (
-            "INSERT INTO WL_MSG (MsgSvrID, type_name, is_sender, talker, room_name, description ,content, whom, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        # mentioned_user is wxid, used get method here as the safe approach in case the key doesnt exist
-        whoms = msg.get('mentioned_user', [])
         content_str = None
+        content = None
         try:
             content = cg.get_content_by_type(
-                msg, wx_root, save_to, vision_api_key, path_to_merge_db, open_ai_api_key)
+                msg=msg,
+                wx_root=wx_root,
+                save_to=save_to,
+                path_to_merge_db=path_to_merge_db)
             content_str = str(content)
         except Exception as e:
             print(f"{msg['MsgSvrID']} encountered issue: {e}")
 
-        # Append room_name if not a chatroom
-        if 'chatroom' not in msg['room_name']:
-            whoms.append(msg['room_name'])
+        whom = get_whom(msg, db_parser, content)
+        
+        # Add content_str and whom to msg dictionary
+        msg['content_str'] = content_str
+        msg['whom'] = " ".join(whom)
 
-        # Append reply_to if is quote_msg
-        if msg['type_name'] == '带有引用的文本消息':
-            # op_wxid has this format [('wxid_7w175a1xeilw11',)]
-            op_wxid = retrieve_op_wxid(db_parser, content['op_id'])
-            if not op_wxid:
-                whoms.append('unkown')
-            else:
-                whoms.append(op_wxid[0][0])
-        print(f"Processing {msg['MsgSvrID']}")
+        save_msg_to_db(db_parser, msg)
 
-        params = (msg["MsgSvrID"], msg["type_name"], msg["is_sender"], msg["talker"], msg["room_name"],
-                  msg['description'], content_str, " ".join(whoms), msg["CreateTime"])
-        db_parser.execute_sql(sql, params)
+        if progress_callback:
+            progress_callback()
 
-def main():
-    pass
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    path_to_merge_db = r"c:\Users\88the\OneDrive\Desktop\wechatlog-export-module\test_output\merge_all.db"
+    wx_root = r"C:\Ussd  ers\88the\OneDrive\Documents\WeChat Files\a38655162"
+    output_dir = r"c:\Users\88the\OneDrive\Desktop\wechatlog-export-module\test_output"
+    db_parser = parsor(path_to_merge_db)
+    create_wl_msg_table_if_not_exists(db_parser)
+
+    # Get total number of messages
+    total_msgs = db_parser.msg_count_total()
+
+    # Create a tqdm progress bar
+    pbar = tqdm(total=total_msgs, desc="Exporting messages")
+
+    # Define the progress callback function
+    def update_progress():
+        pbar.update(1)
+
+    # Call export_msg_to_wl with the progress callback
+    export_msg_to_wl(db_parser,
+                     wx_root,
+                     output_dir,
+                     path_to_merge_db,
+                     progress_callback=update_progress)
+
+    # Close the progress bar
+    pbar.close()
+
+    patches.contact_patch(db_parser)

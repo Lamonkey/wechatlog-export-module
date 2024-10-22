@@ -3,7 +3,7 @@ import textwrap
 import argparse
 from pywxdump.analyzer import contentGeneration as cg
 from pywxdump.dbpreprocess.parsingMSG import ParsingMSG as parsor
-from patches import contact_patch, retrieve_op_wxid
+from wechatlog.wechatlog.patches import contact_patch, retrieve_op_wxid
 
 def print_ascii_art():
     art = r"""

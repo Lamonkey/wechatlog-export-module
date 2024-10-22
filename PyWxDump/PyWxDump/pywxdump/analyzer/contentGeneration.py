@@ -124,7 +124,7 @@ def add_audio_content(msg,
     return content
 
 
-def add_cardlike_content(msg: dict, api_key, enable_scrapper=False) -> dict:
+def add_cardlike_content(msg: dict,) -> dict:
     '''Return content with url, author, displayed_title, displayed_description.
 
     Parameters
@@ -158,7 +158,7 @@ def add_cardlike_content(msg: dict, api_key, enable_scrapper=False) -> dict:
         logger.error(f"required key in content: {e}")
         return None
 
-    return { 
+    return {
         "url": source,
         "author": author,
         "displayed_title": displayed_title,
@@ -264,9 +264,7 @@ def add_file_content(msg, wx_root):
 def get_content_by_type(msg,
                         wx_root,
                         save_to,
-                        vision_api_key,
-                        path_to_merge_db,
-                        open_ai_api_key):
+                        path_to_merge_db):
     type_name = msg['type_name']
     if type_name == '文本':
         return add_text_content(msg)
@@ -286,7 +284,6 @@ def get_content_by_type(msg,
                                  save_to)
     elif type_name == '卡片式链接':
         return add_cardlike_content(msg,
-                                    open_ai_api_key
                                     )
     elif type_name == '视频':
         return add_video_content(msg, wx_root)
