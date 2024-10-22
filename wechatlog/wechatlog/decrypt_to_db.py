@@ -16,6 +16,13 @@ def get_wx_info():
 
 if __name__ == "__main__":
     # if output directory is not empty it will override it
+    # need to test and figure out following error
+    # TODO: test if output_path not exist
+    # TODO: test if output_path is not empty
+    # TODO: test if wx_path is not exist
+    # TODO: test if db in wx_path is not exist
+    # TODO: test if key is wrong
+    # TODO: consider delete decrypted module 
     output_path = r"c:\Users\88the\OneDrive\Desktop\wechatlog-export-module\test_output"
     wx_info = get_wx_info()
     print(wx_info)
