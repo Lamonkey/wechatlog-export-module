@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from pywxdump.dbpreprocess.parsingMSG import ParsingMSG
-from textualization import Textualization
+from wechatlog.textualization import Textualization
 
 def textualize_and_save_msg(db_instance, textualization, msg):
     """Textualize a message and save it back to the database."""

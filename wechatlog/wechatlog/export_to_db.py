@@ -1,7 +1,7 @@
 import textwrap
 from pywxdump.analyzer import contentGeneration as cg
 from pywxdump.dbpreprocess.parsingMSG import ParsingMSG as parsor
-import patches
+from wechatlog import patches
 from tqdm import tqdm
 
 
