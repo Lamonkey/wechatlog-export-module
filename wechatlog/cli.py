@@ -3,7 +3,9 @@ import textwrap
 import argparse
 from pywxdump.analyzer import contentGeneration as cg
 from pywxdump.dbpreprocess.parsingMSG import ParsingMSG as parsor
-from patches import contact_patch, retrieve_op_wxid
+# TODO: this doesn't work because no wechatlog localpackage is installed
+from wechatlog.wechatlog.patches import contact_patch, retrieve_op_wxid
+
 
 def print_ascii_art():
     art = r"""

@@ -359,3 +359,5 @@ dist-ssr
 wxdump_tmp
 .conda
 wxdump_web
+test_output
+

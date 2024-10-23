@@ -1,0 +1,5 @@
+testing_sources/**/*.wav filter=lfs diff=lfs merge=lfs -text
+testing_sources/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+testing_sources/**/*.png filter=lfs diff=lfs merge=lfs -text
+
+
