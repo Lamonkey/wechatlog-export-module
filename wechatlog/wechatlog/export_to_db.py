@@ -131,3 +131,5 @@ if __name__ == '__main__':
     pbar.close()
 
     patches.contact_patch(db_parser)
+    patches.update_wechat_system_talker(db_parser)
+    patches.update_self_talker(db_parser, wxid)
