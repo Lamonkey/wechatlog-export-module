@@ -110,6 +110,7 @@ def add_audio_content(msg,
     if not os.path.isabs(save_to):
         raise ValueError("save_to must be an absolute path")
     save_at = os.path.join(save_to, msg['content']['src'])
+    save_at = save_at.replace('\\', '/')
     directory = os.path.dirname(save_at)
     if not os.path.exists(directory):
         os.makedirs(directory)

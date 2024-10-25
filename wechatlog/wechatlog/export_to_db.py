@@ -18,23 +18,25 @@ def execute_sql_safely(db_parser, sql, params=None):
 
 
 def create_wl_msg_table_if_not_exists(db_parser):
-    sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='WL_MSG'"
-    result = db_parser.execute_sql(sql=sql)
-    if not result:
-        sql = textwrap.dedent("""\
-        CREATE TABLE WL_MSG (
-            MsgSvrID INTEGER PRIMARY KEY,
-            type_name TEXT,
-            is_sender INTEGER,
-            talker TEXT,
-            room_name TEXT,
-            description TEXT,
-            content TEXT,
-            whom TEXT,
-            CreateTime INT
-            )
-        """)
-        db_parser.execute_sql(sql=sql)
+    # Drop the table if it exists
+    drop_table_sql = "DROP TABLE IF EXISTS WL_MSG"
+    db_parser.execute_sql(sql=drop_table_sql)
+
+    # Create the table
+    create_table_sql = textwrap.dedent("""\
+    CREATE TABLE WL_MSG (
+        MsgSvrID INTEGER PRIMARY KEY,
+        type_name TEXT,
+        is_sender INTEGER,
+        talker TEXT,
+        room_name TEXT,
+        description TEXT,
+        content TEXT,
+        whom TEXT,
+        CreateTime INT
+        )
+    """)
+    db_parser.execute_sql(sql=create_table_sql)
 
 
 def save_msg_to_db(db_parser, msg):
@@ -54,7 +56,7 @@ def save_msg_to_db(db_parser, msg):
 
 
 def get_whom(msg, db_parser, content):
-    whom = msg.get('mentioned_user', [])
+    whom = [decode_user(user) for user in msg.get('mentioned_user', [])]
 
     # Append room_name if not a chatroom
     if 'chatroom' not in msg['room_name']:
@@ -101,6 +103,12 @@ def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, progress_cal
 
         if progress_callback:
             progress_callback()
+
+
+def decode_user(user):
+    if isinstance(user, bytes):
+        return user.decode('utf-8', errors='replace')
+    return str(user)
 
 
 if __name__ == '__main__':

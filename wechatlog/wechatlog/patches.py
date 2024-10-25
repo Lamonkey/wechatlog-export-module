@@ -1,19 +1,30 @@
 def contact_patch(db_parser):
-    sql = '''
-    INSERT INTO contact (
-    Remark,
-    NickName,
-    UserName,
-    Alias
-    )
-    VALUES (
-        '微信系统',  -- Remark
-        '微信系统',  -- NickName
-        'wxsystem', -- UserName
-        'wxsystem'  -- Alias
-    );
+    # First, check if 'wxsystem' username already exists
+    check_sql = '''
+    SELECT COUNT(*) FROM contact WHERE UserName = 'wxsystem'
     '''
-    db_parser.execute_sql(sql=sql)
+    result = db_parser.execute_sql(sql=check_sql)
+    
+    if result[0][0] == 0:  # If 'wxsystem' doesn't exist
+        # Perform the insert
+        insert_sql = '''
+        INSERT INTO contact (
+        Remark,
+        NickName,
+        UserName,
+        Alias
+        )
+        VALUES (
+            '微信系统',  -- Remark
+            '微信系统',  -- NickName
+            'wxsystem', -- UserName
+            'wxsystem'  -- Alias
+        );
+        '''
+        db_parser.execute_sql(sql=insert_sql)
+        print("Inserted 'wxsystem' contact into the contact table.")
+    else:
+        print("'wxsystem' contact already exists in the contact table. No insertion performed.")
 
 def retrieve_op_wxid(db_parser, op_id):
     sql = f"""
