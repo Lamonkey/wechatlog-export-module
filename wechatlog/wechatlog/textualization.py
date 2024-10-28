@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import AzureOpenAI
 import base64
 import logging
 import os
@@ -82,14 +82,18 @@ def get_audio_clip(video_path, output_dir=None, bitrate='32k', sample_rate=22050
 
 
 class Textualization:
-    def __init__(self, api_key):
+    def __init__(self, azure_api_key, azure_endpoint, openai_api_key=None):
         try:
-            self.client = OpenAI(api_key=api_key)
-            self.api_key = api_key
+            # For Azure OpenAI
+            self.client = AzureOpenAI(
+                api_key=azure_api_key,
+                azure_endpoint=azure_endpoint
+            )
+            self.openai_api_key = openai_api_key
         except Exception as e:
             logging.error(f"OpenAI client initialization error: {e}")
             self.client = None
-            self.api_key = None
+            self.openai_api_key = None
 
     def textualize_img(self, path_or_url: str) -> str:
         if not self.client:
@@ -276,13 +280,13 @@ class Textualization:
         str
             A summary of the content, or None if there was an error.
         '''
-        if not self.api_key:
+        if not self.openai_api_key:
             logging.error("API key not available")
             return None
 
         graph_config = {
             "llm": {
-                "api_key": self.api_key,
+                "api_key": self.openai_api_key,
                 "model": "openai/gpt-4o-mini",
             },
             "verbose": True,
@@ -415,3 +419,6 @@ if __name__ == "__main__":
     file_path = r'c:\Users\harry\Documents\WeChat Files\wxid_fsy5oyqm39p312\FileStorage\File\2024-05\H1B抽中之后流程 （2023年3月更新） - H1b Legal(1).pdf'
     summary = textualization.textualize_file(file_path)
     print(f"PDF summary: {summary}")
+
+
+

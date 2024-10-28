@@ -29,18 +29,27 @@ def main():
     load_dotenv()
 
     # TODO: add user input later
-    db_path = r'c:\Users\88the\Downloads\wxdump_work\a38655162\merge_all.db'
+    db_path = r"c:\Users\88the\Downloads\wechat_output\merge_all.db"
     if not db_path:
         raise ValueError("db_path is empty")
 
     db_instance = ParsingMSG(db_path)
 
-    # Initialize Textualization
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    if not OPENAI_API_KEY:
-        raise ValueError("OPENAI_API_KEY not set in environment variables")
+    # Initialize Textualization with API keys and endpoint
+    azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    
+    if not azure_api_key:
+        raise ValueError("AZURE_OPENAI_API_KEY not set in environment variables")
+    if not azure_endpoint:
+        raise ValueError("AZURE_OPENAI_ENDPOINT not set in environment variables")
 
-    textualization = Textualization(OPENAI_API_KEY)
+    textualization = Textualization(
+        azure_api_key=azure_api_key,
+        azure_endpoint=azure_endpoint,
+        openai_api_key=openai_api_key
+    )
 
     # Process and textualize messages
     process_messages(db_instance, textualization)

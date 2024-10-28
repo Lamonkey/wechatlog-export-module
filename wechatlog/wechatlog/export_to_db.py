@@ -112,8 +112,8 @@ def decode_user(user):
 
 
 if __name__ == '__main__':
-    path_to_merge_db = r"c:\Users\88the\OneDrive\Desktop\wechatlog-export-module\test_output\merge_all.db"
-    wx_root = r"C:\Ussd  ers\88the\OneDrive\Documents\WeChat Files\a38655162"
+    path_to_merge_db = r"c:\Users\88the\Downloads\wechat_output\merge_all.db"
+    wx_root = r"C:\Users\88the\OneDrive\Documents\WeChat Files\a38655162"
     output_dir = r"c:\Users\88the\OneDrive\Desktop\wechatlog-export-module\test_output"
     db_parser = parsor(path_to_merge_db)
     create_wl_msg_table_if_not_exists(db_parser)
