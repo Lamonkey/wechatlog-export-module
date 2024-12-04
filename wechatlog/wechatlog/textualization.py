@@ -158,7 +158,7 @@ class Textualization:
         try:
             with open(audio_path, "rb") as audio_file:
                 transcription = self.client.audio.transcriptions.create(
-                    model="whisper-1",
+                    model="whisper",
                     file=audio_file
                 )
             return transcription.text
@@ -352,10 +352,10 @@ class Textualization:
 
 if __name__ == "__main__":
     load_dotenv()
-    api_key = os.getenv("OPENAI_API_KEY")
-
+    api_key = os.getenv("AZURE_OPENAI_API_KEY")
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     # Initialize Textualization
-    textualization = Textualization(api_key)
+    textualization = Textualization(api_key, azure_endpoint)
 
     # Test with a local image
     local_image_path = 'c:/Users/harry/Downloads/wxdump_tmp/wxid_fsy5oyqm39p312/img/FileStorage/MsgAttach/2e814e41d6151bc9c60d3aafeb3a182a/Image/2024-09/d0be449312de0dd275b32e0e65c2d360.dat_a8a3955dd1e3506393fac8ef3d6645c8..jpg'
