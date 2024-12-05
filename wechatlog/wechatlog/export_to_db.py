@@ -6,13 +6,13 @@ from tqdm import tqdm
 
 
 def execute_sql_safely(db_parser, sql, params=None):
-    sql = "INSERT OR REPLACE INTO WL_MSG VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     try:
         db_parser.execute_sql(sql, params)
     except Exception as e:
         print(f"Error executing SQL: {e}")
         print(f"SQL: {sql}")
         print(f"Params: {params}")
+        raise
         # Optionally, you can re-raise the exception if you want to halt execution
         # raise
 
@@ -40,7 +40,7 @@ def create_wl_msg_table_if_not_exists(db_parser):
 
 
 def save_msg_to_db(db_parser, msg):
-    sql = "INSERT OR REPLACE INTO WL_MSG VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    sql = "INSERT OR REPLACE INTO WL_MSG VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     params = (
         msg["MsgSvrID"],
         msg["type_name"],
@@ -50,7 +50,9 @@ def save_msg_to_db(db_parser, msg):
         msg['description'],
         msg['content_str'],
         msg['whom'],
-        msg["CreateTime"]
+        msg["CreateTime"],
+        None,
+        None
     )
     execute_sql_safely(db_parser, sql, params)
 
@@ -69,17 +71,22 @@ def get_whom(msg, db_parser, content):
         if not op_wxid:
             whom.append('unknown')
         else:
-            whom.append(op_wxid[0][0])
+            whom.append(decode_user(op_wxid[0][0]))
 
     return whom
 
 
-def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, progress_callback=None):
+def export_msg_to_wl(db_parser,
+                     wx_root,
+                     save_to,
+                     path_to_merge_db,
+                     path_to_wechatlogdb,
+                     progress_callback=None):
     '''
     Export all messages to a WL_MSG table with a specific schema
     '''
     msgs = db_parser.get_all_msgs()
-    
+
     for msg in msgs:
         content_str = None
         content = None
@@ -94,7 +101,7 @@ def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, progress_cal
             print(f"{msg['MsgSvrID']} encountered issue: {e}")
 
         whom = get_whom(msg, db_parser, content)
-        
+
         # Add content_str and whom to msg dictionary
         msg['content_str'] = content_str
         msg['whom'] = " ".join(whom)
@@ -106,6 +113,15 @@ def export_msg_to_wl(db_parser, wx_root, save_to, path_to_merge_db, progress_cal
 
 
 def decode_user(user):
+    """
+    Converts a user identifier to a string, handling byte strings with UTF-8 decoding.
+
+    Args:
+        user: A user identifier that could be either bytes or another type
+
+    Returns:
+        str: The decoded string representation of the user identifier
+    """
     if isinstance(user, bytes):
         return user.decode('utf-8', errors='replace')
     return str(user)
