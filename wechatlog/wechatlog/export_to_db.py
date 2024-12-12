@@ -33,7 +33,9 @@ def create_wl_msg_table_if_not_exists(db_parser):
         description TEXT,
         content TEXT,
         whom TEXT,
-        CreateTime INT
+        CreateTime INT,
+        gmail TEXT DEFAULT NULL,
+        textualized_content TEXT DEFAULT NULL
         )
     """)
     db_parser.execute_sql(sql=create_table_sql)
